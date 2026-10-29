@@ -1,0 +1,3125 @@
+<title>渡江</title>
+<meta property="og:title" content="渡江"><meta property="og:description" content="一個關於逃離的 3D 恐怖短篇遊戲。建議戴耳機，用手機瀏覽器直接開啟。"><meta property="og:type" content="website"><meta name="description" content="渡江：四章 3D 冒險恐怖遊戲">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-screen game. Header strip (title, status, sound) over a 3D stage; dialogue panel docks at the stage bottom. Single dark look by choice. */
+:root{
+  --bg:#06080a; --panel:#0c1013; --line:#232b30; --ink:#dbe0e1; --dim:#8a969b;
+  --amber:#e0a94a; --alarm:#c4412f; --cool:#86a9c3;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 var(--sans);display:flex;flex-direction:column;overflow:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;gap:8px;-webkit-user-select:none;user-select:none;touch-action:none}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:34px}
+header h1{font:700 15px var(--serif);letter-spacing:.12em;margin:0;flex:1;min-width:120px}
+header h1 small{font:400 11px var(--mono);color:var(--dim);letter-spacing:.08em;margin-left:8px}
+.hud{display:flex;gap:14px;font:500 12px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums}
+.hud b{color:var(--ink);font-weight:500}
+.hud .eye{letter-spacing:2px;color:var(--amber)}
+button{font:inherit;color:inherit;cursor:pointer}
+.mute{background:none;border:1px solid var(--line);border-radius:3px;padding:3px 10px;color:var(--dim);font:12px var(--sans)}
+.mute:focus-visible,.btn:focus-visible,.opt:focus-visible,#act:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#stage{position:relative;flex:1;min-height:0;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#000}
+#cv{touch-action:none;position:absolute;inset:0;width:100%;height:100%;display:block}
+.layer{position:absolute;inset:0;pointer-events:none}
+#vig{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.72) 100%)}
+#grain{opacity:.07;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");animation:gr .5s steps(3) infinite}
+@keyframes gr{0%{background-position:0 0}33%{background-position:-40px 22px}66%{background-position:30px -50px}100%{background-position:0 0}}
+#fade{background:#000;opacity:1;transition:opacity 1.1s ease;z-index:30}
+#flash{background:#fff;opacity:0;z-index:31}
+#cap{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;opacity:0;transition:opacity 1s;z-index:25;padding:0 16px}
+#cap h2{font:900 clamp(26px,6vw,46px) var(--serif);letter-spacing:.3em;margin:0;text-indent:.3em}
+#cap p{font:12px var(--mono);letter-spacing:.14em;color:var(--dim);margin:0}
+#hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--dim);background:rgba(6,8,10,.72);padding:4px 12px;border-radius:3px;max-width:90%;text-align:center;opacity:0;transition:opacity .6s;pointer-events:none;z-index:12}
+#subt{position:absolute;left:50%;transform:translateX(-50%);bottom:76px;max-width:min(92%,640px);text-align:center;font:500 15px var(--sans);color:#f1e7cf;text-shadow:0 1px 3px #000,0 0 12px #000;opacity:0;transition:opacity .3s;pointer-events:none;z-index:12;padding:0 8px}
+#dlg{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(8,11,13,.93);border:1px solid var(--line);border-radius:4px;padding:12px 16px 14px;z-index:20;cursor:pointer;max-width:720px;margin-inline:auto}
+#dwho{font:500 11px var(--mono);letter-spacing:.2em;color:var(--amber);min-height:15px}
+#dtxt{font:400 16px/1.75 var(--serif);min-height:28px;margin-top:2px}
+#dmore{position:absolute;right:14px;bottom:8px;color:var(--dim);font-size:11px;animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.2}}
+#dopts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opt{background:#12181c;border:1px solid var(--line);border-radius:3px;padding:8px 12px;text-align:left;font:14px var(--sans);color:var(--ink)}
+.opt:hover{border-color:var(--amber)}
+.opt i{font:normal 11px var(--mono);color:var(--amber);margin-right:8px}
+#dtimer{height:2px;background:var(--line);margin-top:10px}
+#dtimer i{display:block;height:100%;background:var(--alarm);width:100%}
+#act{position:absolute;right:12px;bottom:14px;z-index:15;background:rgba(224,169,74,.14);border:1px solid var(--amber);color:var(--amber);border-radius:3px;padding:10px 16px;font:500 14px var(--sans);min-width:96px}
+#mb{display:none!important;position:absolute;right:12px;bottom:74px;z-index:15;flex-direction:column;gap:8px}
+.mbtn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.25);color:var(--ink);border-radius:3px;padding:10px 16px;font:500 14px var(--sans);touch-action:none}
+.mbtn.on{background:rgba(224,169,74,.3);border-color:var(--amber)}
+#stick{position:absolute;left:14px;bottom:14px;width:112px;height:112px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);z-index:15;touch-action:none;display:none}
+#knob{position:absolute;left:36px;top:36px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2)}
+@media (pointer:coarse){#stick{display:block}}
+#slitT,#slitB{position:absolute;left:0;right:0;background:#000;z-index:9;display:none}
+#slitT{top:0;height:40%;background:linear-gradient(#000 85%,transparent)}
+#slitB{bottom:0;height:40%;background:linear-gradient(transparent,#000 15%)}
+#bUI{position:absolute;left:0;right:0;bottom:12px;z-index:14;display:none;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+#bUI .row{width:min(300px,70%);font:11px var(--mono);color:var(--dim);display:flex;align-items:center;gap:8px}
+#bUI .bar{flex:1;height:5px;background:#1b2327;border-radius:3px;overflow:hidden}
+#bUI .bar i{display:block;height:100%;width:100%}
+#bar1 i{background:var(--cool)}#bar2 i{background:var(--alarm);width:0}
+#hold{pointer-events:auto;background:rgba(134,169,195,.14);border:1px solid var(--cool);color:var(--cool);border-radius:40px;padding:12px 28px;font:500 14px var(--sans);touch-action:none}
+#hold.on{background:rgba(134,169,195,.4)}
+#knockUI{position:absolute;top:10px;right:12px;z-index:12;font:12px var(--mono);color:var(--alarm);display:none}
+#ov{position:absolute;inset:0;z-index:40;background:rgba(3,5,6,.96);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+#ov .box{max-width:520px;width:100%;display:flex;flex-direction:column;gap:14px;margin:auto}
+#ov .k{font:11px var(--mono);letter-spacing:.24em;color:var(--alarm)}
+#ov h2{font:900 clamp(30px,7vw,44px)/1.15 var(--serif);margin:0;letter-spacing:.1em}
+#ov p{margin:0;color:#b8c1c4;font-size:14px;line-height:1.85}
+#ov .small{font-size:12px;color:var(--dim)}
+#ov .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.btn{display:inline-block;background:var(--amber);color:#150f04;border:0;border-radius:3px;padding:11px 24px;font:700 14px var(--sans);text-decoration:none;letter-spacing:.1em}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+#ov dl{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0;font:13px var(--mono);color:var(--dim)}
+#ov dd{margin:0;color:var(--ink)}
+body.c2 header{display:none}
+#ch2f{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;z-index:35;display:none}
+@media (prefers-reduced-motion:reduce){#grain{animation:none}}
+</style>
+
+<header>
+  <h1>渡江<small id="chT"></small></h1>
+  <div class="hud" id="hudBox"></div>
+  <button class="mute" id="sensBtn" type="button" hidden>視角靈敏度：中</button>
+  <button class="mute" id="muteBtn" type="button">聲音：開</button>
+</header>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div class="layer" id="slitT" style="pointer-events:none"></div><div class="layer" id="slitB" style="pointer-events:none;inset:auto 0 0 0"></div>
+  <div class="layer" id="vig"></div>
+  <div class="layer" id="grain"></div>
+  <div id="hint"></div>
+  <div id="knockUI"></div>
+  <div id="subt"></div>
+  <button id="act" type="button" hidden>調查</button>
+  <div id="mb" style="display:none"><button id="bSn" class="mbtn" type="button">蹲伏</button><button id="bRun" class="mbtn" type="button">奔跑</button></div>
+  <div id="stick"><div id="knob"></div></div>
+  <div id="bUI">
+    <div class="row" id="bar2"><span>被聽見</span><div class="bar"><i></i></div></div>
+    <div class="row" id="bar1"><span>氣息</span><div class="bar"><i></i></div></div>
+    <button id="hold" type="button">按住屏息（空白鍵）</button>
+  </div>
+  <div id="dlg" hidden>
+    <div id="dwho"></div><div id="dtxt"></div><div id="dmore">▼</div>
+    <div id="dopts"></div><div id="dtimer" hidden><i></i></div>
+  </div>
+  <div class="layer" id="cap"><h2></h2><p></p></div>
+  <div class="layer" id="flash"></div>
+  <div class="layer" id="fade"></div>
+  <iframe id="ch2f" title="第二章 渡河" allow="autoplay"></iframe>
+  <div id="ov" hidden></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const coarse=(()=>{try{return matchMedia('(pointer:coarse)').matches}catch(e){return false}})();
+
+/* ================= state ================= */
+let S={f:{}};const SAVE={c1:{},c2:{},c3:{},c4:{}};const swayU={value:0};
+const H={PS:l=>2.5*Math.min(1,l),onStep:null,stepIv:null,tick4:null,raidTick:null,reset(){this.PS=l=>2.5*Math.min(1,l);this.onStep=null;this.stepIv=null;this.tick4=null;this.raidTick=null}};
+function setHud(h,t){$('hudBox').innerHTML=h;$('chT').textContent=t||'';$('sensBtn').hidden=!/第四章/.test(t||'')}
+
+/* ================= audio ================= */
+let ac=null,master=null,noiseBuf=null,muted=false,drone=null;
+const beat={bpm:64,vol:0};
+function initAudio(){
+  if(ac)return;
+  try{
+    ac=new(window.AudioContext||window.webkitAudioContext)();
+    master=ac.createGain();master.gain.value=muted?0:.9;master.connect(ac.destination);
+    noiseBuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);
+    const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const g=ac.createGain();g.gain.value=0;g.connect(master);
+    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=170;lp.connect(g);
+    [41,41.7,61.5].forEach((f,i)=>{const o=ac.createOscillator();o.type=i==2?'sine':'sawtooth';o.frequency.value=f;const og=ac.createGain();og.gain.value=i==2?.5:.35;o.connect(og);og.connect(lp);o.start()});
+    const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+    const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=420;bp.Q.value=.8;
+    const wg=ac.createGain();wg.gain.value=0;ns.connect(bp);bp.connect(wg);wg.connect(master);ns.start();
+    const lfo=ac.createOscillator();lfo.frequency.value=.12;const lg=ac.createGain();lg.gain.value=160;lfo.connect(lg);lg.connect(bp.frequency);lfo.start();
+    drone={g,wg};beatLoop();
+  }catch(e){ac=null}
+}
+function ambient(d,w){if(!drone)return;const t=ac.currentTime;drone.g.gain.linearRampToValueAtTime(d,t+2);drone.wg.gain.linearRampToValueAtTime(w,t+2)}
+function nz(dur,vol,type,f,q=1,delay=0){
+  if(!ac)return;const t=ac.currentTime+delay;const s=ac.createBufferSource();s.buffer=noiseBuf;
+  const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;
+  const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(fl);fl.connect(g);g.connect(master);s.start(t,Math.random());s.stop(t+dur+.05);
+}
+function tn(f,dur,vol,type='sine',delay=0,f2){
+  if(!ac)return;const t=ac.currentTime+delay;const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);
+  if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  const g=ac.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05);
+}
+function knock(v,n=3,gap=.3){for(let i=0;i<n;i++){nz(.14,v*.9,'lowpass',260+Math.random()*60,1,i*gap);tn(95,.13,v*.8,'sine',i*gap,55)}}
+function kick(){nz(.55,1,'lowpass',500);tn(70,.5,1,'sine',0,30);nz(.12,.7,'bandpass',2400,1,.02)}
+function stepSnd(v=.25){nz(.1,v*1.7,'lowpass',380+Math.random()*160);tn(95+Math.random()*25,.1,v*.9,'sine',0,55)}
+function rummage(){for(let i=0;i<7;i++)nz(.09,.25,'bandpass',900+Math.random()*900,1.5,i*.32+Math.random()*.1)}
+function stinger(){[220,233,311,329].forEach((f,i)=>tn(f,2.4,.12,'sawtooth',i*.03,f*.5))}
+function gaspSnd(){nz(.35,.5,'bandpass',1100,.8)}
+function thump(a,v){tn(60,.16,v*a,'sine',0,36)}
+function beatLoop(){if(!ac)return;if(beat.vol>.01){thump(1,beat.vol);setTimeout(()=>thump(.7,beat.vol),180)}setTimeout(beatLoop,60000/beat.bpm)}
+function creak(){tn(150,.7,.05,'sawtooth',0,210)}
+function speakKo(t,rate){
+  const est=Math.max(2500,t.length*190/(rate||.88));
+  return new Promise(res=>{
+    if(muted||!window.speechSynthesis){setTimeout(res,est);return}
+    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.pitch=.55;u.rate=rate||.88;u.volume=1;
+      const v=speechSynthesis.getVoices().find(v=>/^ko/i.test(v.lang));if(v)u.voice=v;
+      let d=false;const fin=()=>{if(!d){d=true;res()}};u.onend=fin;u.onerror=fin;u.onstart=()=>{d0=1};let d0=0;setTimeout(()=>{if(!d0)fin()},1800);setTimeout(fin,est+1500);speechSynthesis.speak(u)}catch(e){setTimeout(res,est)}
+  });
+}
+$('muteBtn').addEventListener('click',()=>{
+  muted=!muted;if(master)master.gain.value=muted?0:.9;
+  if(muted&&window.speechSynthesis)try{speechSynthesis.cancel()}catch(e){}
+  $('muteBtn').textContent='聲音：'+(muted?'關':'開');
+});
+const BC=[
+ ['위대한 령도자 동지의 은혜에 감사드립니다.','感謝偉大領導者同志的恩惠。'],
+ ['인민은 당과 함께 있습니다. 의심스러운 자를 보면 즉시 신고하십시오.','人民與黨同在。看見可疑的人，請立即舉報。'],
+ ['오늘도 한 알의 쌀, 한 방울의 땀으로 조국을 지킵시다.','今天也用一粒米、一滴汗守護祖國。'],
+ ['한 사람의 배신은 모두의 불행입니다.','一個人的背叛，是所有人的不幸。'],
+ ['집집마다 초상화를 깨끗이 닦읍시다.','每一戶都要把肖像擦乾淨。']
+];
+let bci=0;
+function bcast(i){const b=BC[(i==null?bci++:i)%BC.length];nz(.35,.14,'bandpass',2600,.6);speakKo(b[0]);sub('廣播：'+b[1],4200)}
+
+/* ================= three setup ================= */
+const stage=$('stage'),cv=$('cv');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(46,1,.1,140);
+function resize(){const r=stage.getBoundingClientRect();renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);camera.aspect=Math.max(1,r.width)/Math.max(1,r.height);camera.updateProjectionMatrix()}
+window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);
+
+const hemi=new THREE.HemisphereLight(0x4a6a8a,0x0a0806,.45);scene.add(hemi);
+const moon=new THREE.DirectionalLight(0x8fa8c8,.5);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);moon.shadow.bias=-.0008;
+const sc=moon.shadow.camera;sc.left=-14;sc.right=14;sc.top=14;sc.bottom=-14;sc.near=1;sc.far=60;
+scene.add(moon);scene.add(moon.target);
+const candle=new THREE.PointLight(0xffb866,1.4,10);scene.add(candle);
+
+let world=new THREE.Group();scene.add(world);
+let extras=[]; // lamp lights etc, removed on clear
+function clearWorld(){FP.on=false;raid=null;scene.remove(world);extras.forEach(o=>scene.remove(o));extras=[];world=new THREE.Group();scene.add(world);
+  solids=[];interact=[];movers.length=0;insps=[];door.ang=0;door.tgt=0;door.g=null;fl.list=[]}
+function ctex(w,h,draw,rx=1,ry=1){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);return t}
+const T_WOOD=ctex(256,256,(x,w,h)=>{x.fillStyle='#2a1d14';x.fillRect(0,0,w,h);for(let i=0;i<8;i++){x.fillStyle=`hsl(26,${22+Math.random()*12}%,${9+Math.random()*7}%)`;x.fillRect(0,i*32+1,w,30)}
+  for(let i=0;i<700;i++){x.fillStyle=`rgba(0,0,0,${Math.random()*.25})`;x.fillRect(Math.random()*w,Math.random()*h,rnd(8,40),1)}},4,3);
+const T_WALL=ctex(256,256,(x,w,h)=>{x.fillStyle='#3a3a34';x.fillRect(0,0,w,h);for(let i=0;i<2500;i++){x.fillStyle=`rgba(${Math.random()<.5?0:255},${Math.random()<.5?0:255},${Math.random()<.5?0:255},.04)`;x.fillRect(Math.random()*w,Math.random()*h,rnd(1,4),rnd(1,4))}},3,1);
+const T_MUD=ctex(256,256,(x,w,h)=>{x.fillStyle='#17140f';x.fillRect(0,0,w,h);for(let i=0;i<2600;i++){x.fillStyle=`hsl(${28+Math.random()*10},${10+Math.random()*14}%,${6+Math.random()*10}%)`;x.fillRect(Math.random()*w,Math.random()*h,rnd(1,5),rnd(1,4))}},14,24);
+function mk(w,h,d,col,x,y,z,o={}){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:o.r==null?.9:o.r,metalness:0,flatShading:true,map:o.map||null,emissive:o.em||0,emissiveIntensity:o.ei||0}));
+  m.position.set(x,y,z);m.castShadow=o.cs!==false;m.receiveShadow=true;(o.p||world).add(m);return m;
+}
+function cyl(rt,rb,h,col,x,y,z,o={}){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,14),new THREE.MeshStandardMaterial({color:col,roughness:.9,flatShading:true}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;world.add(m);return m}
+let solids=[];
+function solid(x1,z1,x2,z2){solids.push([x1,z1,x2,z2])}
+function hits(x,z,r){for(const s of solids)if(x+r>s[0]&&x-r<s[2]&&z+r>s[1]&&z-r<s[3])return true;return false}
+
+/* ----- people ----- */
+function makePerson(o){
+  const g=new THREE.Group();
+  const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.9,flatShading:true});
+  const part=(w,h,d,c,x,y,z,par)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c));m.position.set(x,y,z);m.castShadow=true;(par||g).add(m);return m};
+  const sc_=o.s||1;
+  part(.46,.64,.28,o.shirt,0,1.12,0);
+  part(.28,.28,.28,o.skin||0xc4a086,0,1.62,0);
+  if(o.hair!=null){part(.3,.1,.3,o.hair,0,1.79,-.01);part(.3,.28,.1,o.hair,0,1.66,-.12)}
+  if(o.pony)part(.08,.32,.08,o.hair,0,1.5,-.2);
+  if(o.cap){part(.34,.1,.34,o.cap,0,1.83,0);part(.3,.03,.14,o.cap,0,1.78,.2)}
+  const limb=(w,h,d,c,x,y)=>{const pv=new THREE.Group();pv.position.set(x,y,0);g.add(pv);part(w,h,d,c,0,-h/2,0,pv);return pv};
+  g.userData={aL:limb(.12,.58,.12,o.shirt,-.31,1.4),aR:limb(.12,.58,.12,o.shirt,.31,1.4),lL:limb(.16,.8,.16,o.pants,-.12,.8),lR:limb(.16,.8,.16,o.pants,.12,.8),ph:0,lock:false};
+  g.scale.setScalar(sc_);world.add(g);return g;
+}
+function animP(p,mv,dt){
+  const u=p.userData;if(mv)u.ph+=dt*7;const s=mv?Math.sin(u.ph)*.7:0;
+  u.lL.rotation.x=s;u.lR.rotation.x=-s;if(!u.lock){u.aL.rotation.x=-s*.8;u.aR.rotation.x=s*.8}
+  p.position.y=mv?Math.abs(Math.sin(u.ph))*.03:0;
+}
+function face(p,x,z){p.rotation.y=Math.atan2(x-p.position.x,z-p.position.z)}
+const movers=[];
+function walkTo(p,x,z,sp=2.2,snd=false){return new Promise(res=>{movers.push({p,x,z,sp,res,snd,st:0})})}
+function setP(p,x,z,ry){p.position.set(x,0,z);if(ry!=null)p.rotation.y=ry}
+
+/* ----- flashlights (raid) ----- */
+const fl={list:[]};
+function makeFlash(p){
+  const light=new THREE.SpotLight(0xfff0d0,2.6,16,.38,.55,1.2);scene.add(light);scene.add(light.target);extras.push(light,light.target);
+  const geo=new THREE.ConeGeometry(1,1,18,1,true);geo.translate(0,-.5,0);geo.rotateX(-Math.PI/2);
+  const cone=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xfff0d0,transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+  scene.add(cone);extras.push(cone);
+  const f={p,light,cone,aim:new THREE.Vector3(0,0,0),tgt:new THREE.Vector3(0,0,0),on:true};fl.list.push(f);return f;
+}
+function look(f,x,y,z){f.tgt.set(x,y,z)}
+function flUpdate(dt){
+  fl.list.forEach(f=>{
+    f.aim.lerp(f.tgt,Math.min(1,dt*4));
+    const p=f.p;const hx=p.position.x+Math.sin(p.rotation.y)*.35,hz=p.position.z+Math.cos(p.rotation.y)*.35;
+    f.light.position.set(hx,1.2,hz);f.light.target.position.copy(f.aim);f.light.visible=f.on;f.cone.visible=f.on;
+    f.cone.position.set(hx,1.2,hz);f.cone.lookAt(f.aim);
+    const L=Math.max(.5,f.cone.position.distanceTo(f.aim));f.cone.scale.set(L*.4,L*.4,L);
+  });
+}
+
+/* ================= dialogue ================= */
+const dlg=$('dlg'),dwho=$('dwho'),dtxt=$('dtxt'),dopts=$('dopts'),dmore=$('dmore'),dtimer=$('dtimer');
+let adv=null,typing=null,choiceKeys=[],inDlg=false;
+function openDlg(){dlg.hidden=false;inDlg=true;$('act').hidden=true}
+function closeDlg(){dlg.hidden=true;inDlg=false}
+function typeIt(text){return new Promise(res=>{let i=0;dtxt.textContent='';
+  const iv=setInterval(()=>{i++;dtxt.textContent=text.slice(0,i);if(i>=text.length){clearInterval(iv);typing=null;res()}},26);
+  typing={finish:()=>{clearInterval(iv);dtxt.textContent=text;typing=null;res()}}})}
+function advance(){if(typing){typing.finish();return}if(adv){const f=adv;adv=null;f()}}
+dlg.addEventListener('click',e=>{if(e.target.closest('.opt'))return;advance()});
+async function say(who,text){openDlg();dwho.textContent=who;dopts.innerHTML='';dtimer.hidden=true;dmore.style.visibility='hidden';choiceKeys=[];
+  await typeIt(text);dmore.style.visibility='visible';await new Promise(r=>{adv=r})}
+async function talk(lines){for(const l of lines)await say(l[0],l[1]);closeDlg()}
+function ask(q,opts,o={}){return new Promise(async res=>{
+  openDlg();dwho.textContent=o.who||'';dopts.innerHTML='';dtimer.hidden=true;dmore.style.visibility='hidden';choiceKeys=[];
+  await typeIt(q);
+  let done=false,to=null;
+  const pick=i=>{if(done)return;done=true;clearTimeout(to);choiceKeys=[];dopts.innerHTML='';dtimer.hidden=true;closeDlg();res(i)};
+  opts.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='opt';b.innerHTML='<i>'+(i+1)+'</i>'+t;b.addEventListener('click',()=>pick(i));dopts.appendChild(b);choiceKeys[i]=()=>pick(i)});
+  if(o.time){dtimer.hidden=false;const bar=dtimer.firstElementChild;bar.style.transition='none';bar.style.width='100%';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{bar.style.transition='width '+o.time+'s linear';bar.style.width='0%'}));
+    to=setTimeout(()=>{if(!done){sub('你沉默太久了。',1800);pick(o.def==null?opts.length-1:o.def)}},o.time*1000)}
+})}
+let subTo=null;
+function sub(t,ms=3000){const e=$('subt');e.textContent=t;e.style.opacity=1;clearTimeout(subTo);subTo=setTimeout(()=>{e.style.opacity=0},ms)}
+let hintTo=null;
+function hint(t,ms=6000){const e=$('hint');e.textContent=t;e.style.opacity=1;clearTimeout(hintTo);hintTo=setTimeout(()=>{e.style.opacity=0},ms)}
+async function caption(a,b,ms=3000){const c=$('cap');c.querySelector('h2').textContent=a;c.querySelector('p').textContent=b||'';c.style.opacity=1;await sleep(ms);c.style.opacity=0;await sleep(900)}
+async function fadeTo(v,ms=1000){const f=$('fade');f.style.transition='opacity '+ms/1000+'s ease';f.style.opacity=v;await sleep(ms)}
+function flashFx(){const f=$('flash');f.style.transition='none';f.style.opacity=.9;requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transition='opacity .8s';f.style.opacity=0}))}
+function panel(o){return new Promise(res=>{
+  const ov=$('ov');
+  ov.innerHTML='<div class="box">'+(o.k?'<div class="k">'+o.k+'</div>':'')+'<h2>'+o.title+'</h2>'+(o.body||'')+'<div class="btns">'+o.btns.map(b=>b.href?'<a class="btn'+(b.ghost?' ghost':'')+'" href="'+b.href+'" target="_blank" rel="noopener">'+b.label+'</a>':'<button type="button" class="btn'+(b.ghost?' ghost':'')+'" data-b="'+b.id+'">'+b.label+'</button>').join('')+'</div></div>';
+  ov.hidden=false;
+  ov.querySelectorAll('[data-b]').forEach(b=>b.addEventListener('click',()=>{ov.hidden=true;res(b.dataset.b)}));
+})}
+
+/* ================= input ================= */
+const keys={};let busy=true,mode='follow',holdKey=false,holdBtn=false;
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+  if(k===' '){holdKey=true}
+  if(inDlg){if(k==='e'||k===' '||k==='enter')advance();if(/^[1-4]$/.test(k)&&choiceKeys[+k-1])choiceKeys[+k-1]();return}
+  keys[k]=true;
+  if((k==='e'||k==='enter')&&!busy&&mode==='follow')doInteract();
+});
+window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=false;if(k===' ')holdKey=false});
+const holdEl=$('hold');
+['pointerdown'].forEach(ev=>holdEl.addEventListener(ev,e=>{holdBtn=true;holdEl.classList.add('on');e.preventDefault()}));
+['pointerup','pointercancel','pointerleave'].forEach(ev=>holdEl.addEventListener(ev,()=>{holdBtn=false;holdEl.classList.remove('on')}));
+const stickEl=$('stick'),knob=$('knob');let sv={x:0,y:0},sid=null;
+function sMove(e){const r=stickEl.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const m=r.width/2*.8,l=Math.hypot(dx,dy);if(l>m){dx*=m/l;dy*=m/l}sv={x:dx/m,y:dy/m};knob.style.transform='translate('+dx+'px,'+dy+'px)'}
+stickEl.addEventListener('pointerdown',e=>{sid=e.pointerId;stickEl.setPointerCapture(e.pointerId);sMove(e)});
+stickEl.addEventListener('pointermove',e=>{if(e.pointerId===sid)sMove(e)});
+const sEnd=e=>{if(e.pointerId===sid){sid=null;sv={x:0,y:0};knob.style.transform=''}};
+stickEl.addEventListener('pointerup',sEnd);stickEl.addEventListener('pointercancel',sEnd);
+$('act').addEventListener('click',()=>{if(!busy&&mode==='follow')doInteract()});
+
+/* ================= interactables ================= */
+let interact=[],nearest=null;
+function addIt(o){o.m=new THREE.Mesh(new THREE.OctahedronGeometry(.11),new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:.85,fog:false}));
+  o.m.position.set(o.x,o.my||1.3,o.z);world.add(o.m);interact.push(o);return o}
+async function doInteract(){
+  if(!nearest||busy)return;busy=true;$('act').hidden=true;const it=nearest;
+  try{await it.run(it)}finally{if(!it.keep&&(!raid||!raid.hidden))busy=false}
+}
+
+/* ================= player + loop ================= */
+let me=null,T=0,raid=null,insps=[];
+const door={g:null,ang:0,tgt:0};
+const clock=new THREE.Clock();
+function frame(){
+  const dt=Math.min(.05,clock.getDelta());T+=dt;
+  // player movement
+  let mv=false;
+  if(me&&!busy&&mode==='follow'){
+    let ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+sv.x,iz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+sv.y;
+    const l=Math.hypot(ix,iz);
+    if(l>.08){if(l>1){ix/=l;iz/=l}const sp=H.PS(l),mvv=mxv(ix,iz),dx=mvv[0]*sp*dt,dz=mvv[1]*sp*dt,r=.28;
+      if(!hits(me.position.x+dx,me.position.z,r))me.position.x+=dx;if(!hits(me.position.x,me.position.z+dz,r))me.position.z+=dz;
+      me.rotation.y=FP.on?FP.yaw:Math.atan2(ix,iz);mv=true;me.userData.sc=(me.userData.sc||0)-dt;if(me.userData.sc<=0){if(H.onStep)H.onStep();else stepSnd(.3);me.userData.sc=(H.stepIv?H.stepIv():.45)}}
+  }
+  if(FP.on&&me&&scene_.name==='wild')me.visible=false;
+  if(me)animP(me,mv,dt);
+  if(H.tick4)H.tick4(dt,mv);
+  // movers
+  for(let i=movers.length-1;i>=0;i--){const m=movers[i],p=m.p,dx=m.x-p.position.x,dz=m.z-p.position.z,d=Math.hypot(dx,dz);
+    if(d<.06){movers.splice(i,1);animP(p,false,dt);m.res();continue}
+    const s=Math.min(d,m.sp*dt);p.position.x+=dx/d*s;p.position.z+=dz/d*s;p.rotation.y=Math.atan2(dx,dz);animP(p,true,dt);
+    if(m.snd){m.st-=dt;if(m.st<=0){stepSnd(.3);m.st=.5}}}
+  // idle anim
+  world.children.forEach(c=>{if(c.userData&&c.userData.lL&&c!==me&&!movers.some(m=>m.p===c))animP(c,false,dt)});
+  // markers
+  nearest=null;let nd=1e9;
+  interact.forEach(it=>{if(it.m){it.m.visible=!it.hide&&!busy;it.m.position.y=(it.my||1.3)+Math.sin(T*3+it.x)*.06;it.m.rotation.y=T*2}
+    if(me&&!it.hide){const d=Math.hypot(me.position.x-it.x,me.position.z-it.z);if(d<(it.r||1.2)&&d<nd){nd=d;nearest=it}}});
+  const act=$('act');
+  if(nearest&&!busy&&mode==='follow'&&!inDlg){act.hidden=false;act.textContent=(coarse?'':'E　')+nearest.label}else act.hidden=true;
+  // candle
+  candle.intensity=candle.userData.on?(candle.userData.base||1.25)+Math.sin(T*9)*.12+Math.sin(T*23)*.08+(Math.random()-.5)*.08:0;
+  if(candle.userData.fm)candle.userData.fm.visible=!!candle.userData.on;
+  // door
+  if(door.g){door.ang+=(door.tgt-door.ang)*Math.min(1,dt*(door.tgt?9:3));door.g.rotation.y=door.ang}
+  swayU.value=T;
+  flUpdate(dt);
+  if(raid&&raid.active&&H.raidTick)H.raidTick(dt);
+  // rain
+  if(rain&&rain.visible){rain.position.set(camera.position.x,0,camera.position.z-4);
+    for(let i=0;i<RN;i++){const j=i*6,dy=rainV[i]*dt;rainP[j+1]-=dy;rainP[j+4]-=dy;if(rainP[j+4]<0){rainP[j+1]+=16;rainP[j+4]+=16}}rainG.attributes.position.needsUpdate=true}
+  // camera
+  if(mode==='peek'&&raid&&raid.peek){camera.position.lerp(raid.peek.pos,Math.min(1,dt*4));camera.lookAt(raid.peek.look);camera.fov+=(64-camera.fov)*Math.min(1,dt*3);camera.updateProjectionMatrix()}
+  else if(me){
+    if(FP.on&&scene_.name==='wild'){fpCam()}
+    else if(scene_.name==='farm'||scene_.name==='home'){const px=me.position.x*.2;camera.position.lerp(new THREE.Vector3(px,10.6,9.4),Math.min(1,dt*3));camera.lookAt(px,.3,-.1)}
+    else{const tx=me.position.x*.4,tz=me.position.z;camera.position.lerp(new THREE.Vector3(tx,7.2,tz+8.6),Math.min(1,dt*3));camera.lookAt(tx,.9,tz-2.2);
+      moon.position.set(me.position.x-6,14,me.position.z+8);moon.target.position.set(me.position.x,0,me.position.z)}
+    if(!(FP.on&&scene_.name==='wild')&&camera.fov!==46){camera.fov=46;camera.updateProjectionMatrix()}
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+const scene_={name:''};
+let rain=null,rainG,rainP,rainV;const RN=1100;
+function addRain(){
+  rainG=new THREE.BufferGeometry();rainP=new Float32Array(RN*6);rainV=new Float32Array(RN);
+  for(let i=0;i<RN;i++){const x=rnd(-20,20),y=rnd(0,16),z=rnd(-20,20);rainP.set([x,y,z,x+.05,y-.5,z+.04],i*6);rainV[i]=rnd(13,19)}
+  rainG.setAttribute('position',new THREE.BufferAttribute(rainP,3));
+  rain=new THREE.LineSegments(rainG,new THREE.LineBasicMaterial({color:0x9fb6cf,transparent:true,opacity:.3,fog:false}));
+  rain.frustumCulled=false;rain.visible=false;scene.add(rain);
+}
+addRain();
+
+function setMood(m){
+  if(m==='night'){scene.background=new THREE.Color(0x05070a);scene.fog=new THREE.FogExp2(0x05070a,.022);hemi.intensity=.5;moon.intensity=.5;moon.position.set(-4,10,7);moon.target.position.set(0,0,0);
+    sc.left=-9;sc.right=9;sc.top=9;sc.bottom=-9;candle.userData.on=true;rain.visible=false;hemi.color.set(0x4a6a8a)}
+  if(m==='raid'){hemi.intensity=.2;moon.intensity=.22;candle.userData.on=false}
+  if(m==='street'){scene.background=new THREE.Color(0x0b1015);scene.fog=new THREE.FogExp2(0x0b1015,.026);hemi.intensity=.62;hemi.color.set(0x7088a0);moon.intensity=.6;
+    sc.left=-14;sc.right=14;sc.top=14;sc.bottom=-14;candle.userData.on=false;rain.visible=true}
+  moon.target.updateMatrixWorld();
+}
+
+/* first person (chapter 4 wild) */
+const FP={on:false,yaw:Math.PI,pitch:0,sens:1};const SHK={v:0};let fpl=null;
+function mxv(ix,iz){if(!FP.on)return[ix,iz];const fw=-iz,sd=ix;return[fw*Math.sin(FP.yaw)-sd*Math.cos(FP.yaw),fw*Math.cos(FP.yaw)+sd*Math.sin(FP.yaw)]}
+function fpCam(){
+  if(camera.fov!==74){camera.fov=74;camera.updateProjectionMatrix()}
+  camera.position.set(me.position.x,1.55,me.position.z);
+  camera.rotation.order='YXZ';camera.rotation.set(FP.pitch,FP.yaw+Math.PI,0);
+  if(fpl){fpl.position.copy(camera.position);const f=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation);fpl.target.position.copy(camera.position).addScaledVector(f,12);fpl.target.updateMatrixWorld()}
+  if(SHK.v>.01){camera.position.x+=(Math.random()-.5)*SHK.v*.35;camera.position.y+=(Math.random()-.5)*SHK.v*.25;camera.rotation.z=(Math.random()-.5)*SHK.v*.08;SHK.v*=.93}
+  moon.position.set(me.position.x-6,14,me.position.z+8);moon.target.position.set(me.position.x,0,me.position.z);
+}
+function turnTo(x,z,ms=800){
+  return new Promise(res=>{
+    const t=Math.atan2(x-me.position.x,z-me.position.z);let d=t-FP.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));
+    const y0=FP.yaw,p0=FP.pitch,t0=performance.now();
+    (function st(){const k=Math.min(1,(performance.now()-t0)/ms),e=k*k*(3-2*k);FP.yaw=y0+d*e;FP.pitch=p0*(1-e);if(k<1)requestAnimationFrame(st);else res()})();
+  });
+}
+let lookId=null,lkx=0,lky=0;
+cv.addEventListener('pointerdown',e=>{if(!FP.on||lookId!==null)return;lookId=e.pointerId;lkx=e.clientX;lky=e.clientY;try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointermove',e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lkx,dy=e.clientY-lky;lkx=e.clientX;lky=e.clientY;FP.yaw-=dx*.0055*FP.sens;FP.pitch=clamp(FP.pitch-dy*.0045*FP.sens,-.9,.7)});
+['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,e=>{if(e.pointerId===lookId)lookId=null}));
+const SENS=[['低',.6],['中',1],['高',1.6]];let sensI=1;
+$('sensBtn').addEventListener('click',()=>{sensI=(sensI+1)%3;FP.sens=SENS[sensI][1];$('sensBtn').textContent='視角靈敏度：'+SENS[sensI][0]});
+
+
+/* ================= chapters & orchestration ================= */
+const CH={};
+const HUD1='<span>食物 <b id="hF">3</b></span><span>錢 <b id="hM">0</b></span><span>注視 <span class="eye" id="hE">○○○○○○</span></span>';
+const HUD3='<span>中文 <span class="eye" id="hL">○○○○○</span></span><span>注視 <span class="eye" id="hE">○○○○○○</span></span>';
+const HUD4='<span>同行 <span class="eye" id="hT">●●●●●</span></span><span>注視 <span class="eye" id="hE">○○○○○○</span></span><span>體力 <b id="hS">100</b></span>';
+const SMALL0='';
+
+function mkCH1(){
+/* ================= scene: home ================= */
+const HIDE={bed:{x:3.7,z:-1.4},wardrobe:{x:4.55,z:2.5}};
+function buildHome(){
+  clearWorld();scene_.name='home';
+  const fl_=new THREE.Mesh(new THREE.PlaneGeometry(10.4,7.4),new THREE.MeshStandardMaterial({map:T_WOOD,roughness:.85}));fl_.rotation.x=-Math.PI/2;fl_.receiveShadow=true;world.add(fl_);
+  const wl={map:T_WALL,r:1};
+  mk(10.4,3,.2,0x3a3a34,0,1.5,-3.6,wl);                       // back
+  mk(.2,2.4,3.9,0x3a3a34,-5.1,1.2,-1.65,wl);mk(.2,2.4,1.9,0x3a3a34,-5.1,1.2,2.65,wl); // left w/ door gap z .3..1.7
+  mk(.2,2.4,7.4,0x3a3a34,5.1,1.2,0,wl);                      // right
+  mk(.2,2.6,3.9,0x3a3a34,1.5,1.3,-1.65,wl);mk(.2,2.6,1.9,0x3a3a34,1.5,1.3,2.65,wl); // partition
+  mk(.3,.12,1.5,0x1a1612,-5.1,2.4,1.0);                       // lintel
+  solid(-5.4,-3.9,5.4,-3.4);solid(-5.4,-3.9,-4.95,.3);solid(-5.4,1.7,-4.95,3.9);solid(4.95,-3.9,5.4,3.9);
+  solid(1.4,-3.6,1.6,.3);solid(1.4,1.7,1.6,3.6);solid(-5.4,3.45,5.4,3.9);
+  // door (pivot)
+  const dg=new THREE.Group();dg.position.set(-5.05,0,.3);world.add(dg);door.g=dg;door.ang=0;door.tgt=0;
+  const dp=mk(.07,2.1,1.4,0x2a1c12,0,1.05,.7,{p:dg});solid(-5.4,.3,-4.9,1.7);door.solid=solids[solids.length-1];
+  // window
+  mk(1.3,1.1,.05,0x9fc0e0,-.4,1.9,-3.47,{em:0x8fb8e8,ei:.9,cs:false});mk(1.5,.08,.08,0x15110d,-.4,1.35,-3.45);mk(1.5,.08,.08,0x15110d,-.4,2.45,-3.45);mk(.08,1.2,.08,0x15110d,-.4,1.9,-3.45);
+  // table + candle
+  mk(1.7,.1,.95,0x4a3626,-2.5,.78,.2);[[-.75,-.4],[.75,-.4],[-.75,.4],[.75,.4]].forEach(a=>mk(.1,.74,.1,0x3a2a1c,-2.5+a[0],.37,.2+a[1]));solid(-3.4,-.3,-1.6,.7);
+  cyl(.05,.05,.2,0xe8dcc0,-2.5,.93,.2);
+  const fm=new THREE.Mesh(new THREE.SphereGeometry(.05,8,8),new THREE.MeshBasicMaterial({color:0xffc070,fog:false}));fm.position.set(-2.5,1.07,.2);world.add(fm);fm.scale.y=1.6;candle.userData.fm=fm;
+  candle.position.set(-2.5,1.3,.2);candle.userData.on=true;
+  // portrait
+  mk(.95,1.25,.06,0x1a120c,-3.2,1.9,-3.47);
+  const pt=ctex(128,160,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#6b6150');g.addColorStop(1,'#3e382d');x.fillStyle=g;x.fillRect(0,0,w,h);x.fillStyle='#17130e';x.beginPath();x.arc(w/2,62,24,0,7);x.fill();x.beginPath();x.moveTo(18,h);x.quadraticCurveTo(w/2,76,w-18,h);x.fill()});
+  const pm=mk(.8,1.1,.02,0xffffff,-3.2,1.9,-3.43,{map:pt,r:.5,cs:false});
+  // shelf + radio
+  mk(1.4,.07,.34,0x3a2a1c,-.4,1.15,-3.3);mk(.55,.3,.22,0x2b2a26,-.4,1.34,-3.3);mk(.14,.14,.02,0x7a6a3a,-.25,1.34,-3.18,{cs:false});mk(.3,.2,.02,0x0e0e0e,-.52,1.34,-3.18,{cs:false});
+  // jar
+  cyl(.38,.34,.75,0x5a3b26,-4.3,.38,-3.0);cyl(.3,.3,.07,0x2b1d12,-4.3,.8,-3.0);solid(-4.75,-3.45,-3.85,-2.55);
+  // stove
+  mk(.9,.6,.7,0x1c1c1a,-4.3,.3,1.2);cyl(.25,.25,.2,0x0e0e0e,-4.3,.7,1.2);solid(-4.8,.8,-3.8,1.6);
+  // loose board
+  mk(.95,.025,.26,0x3d2c1d,-1.6,.02,2.3,{cs:false});
+  // bed + mother
+  [[-.7,-1.2],[.7,-1.2],[-.7,1.2],[.7,1.2]].forEach(a=>mk(.1,.38,.1,0x2a1c12,3.7+a[0],.19,-2.2+a[1]));
+  mk(1.6,.14,2.7,0x4a3a2a,3.7,.42,-2.2);mk(1.5,.16,1.7,0x56604a,3.7,.57,-1.7);mk(.7,.1,.5,0xc8c2b0,3.7,.55,-3.0);
+  mk(.26,.26,.26,0xc4a086,3.7,.72,-3.0);mk(.28,.14,.28,0x1a1a1a,3.7,.82,-3.02);
+  solid(2.85,-3.5,4.55,-.9);
+  // wardrobe
+  mk(.9,2.1,.7,0x2e2218,4.55,1.05,2.5);mk(.02,1.9,.02,0x0e0a06,4.55,1.05,2.14,{cs:false});mk(.06,.2,.04,0x887744,4.45,1.0,2.13,{cs:false});solid(4.1,2.15,5.0,2.85);
+  // mat
+  mk(1.0,.04,1.9,0x56503c,2.9,.03,1.4,{cs:false});
+  // shoes + hooks
+  mk(.3,.12,.14,0x161616,-4.6,.06,2.8);mk(.3,.12,.14,0x161616,-4.2,.06,2.9);
+  // markers/it defs set by scenes
+  me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
+  scene.add(moon);
+}
+const SPOT={
+  jar:{name:'米缸',stand:[-3.6,-2.2],aim:[-4.3,.5,-3.0],who:'B'},
+  floor:{name:'地板的縫隙',stand:[-1.3,1.7],aim:[-1.6,0,2.3],who:'B'},
+  portrait:{name:'肖像後面',stand:[-3.0,-2.6],aim:[-3.2,1.9,-3.4],who:'B'},
+  bed:{name:'床底',stand:[2.5,-1.6],aim:[3.7,.12,-1.4],who:'A'},
+  wardrobe:{name:'衣櫃',stand:[3.8,2.0],aim:[4.5,1.2,2.5],who:'A'}
+};
+
+/* ================= scene: street ================= */
+function buildStreet(){
+  clearWorld();scene_.name='street';
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(40,70),new THREE.MeshStandardMaterial({map:T_MUD,roughness:1}));g.rotation.x=-Math.PI/2;g.position.set(0,0,-10);g.receiveShadow=true;world.add(g);
+  const rd=new THREE.Mesh(new THREE.PlaneGeometry(7,62),new THREE.MeshStandardMaterial({color:0x2b2a26,roughness:1}));rd.rotation.x=-Math.PI/2;rd.position.set(0,.01,-8);rd.receiveShadow=true;world.add(rd);
+  for(let i=0;i<7;i++){
+    const z=7-i*5.6,h=3+Math.random()*1.4;
+    [[-1,-9],[1,9]].forEach(s=>{const x=s[1]+s[0]*0;mk(5,h,4.6,[0x34332d,0x2d3030,0x3a352e][i%3],s[0]<0?-8.4:8.4,h/2,z,{map:T_WALL,r:1});
+      mk(5.6,.25,5.2,0x1b1a17,s[0]<0?-8.4:8.4,h+.1,z);
+      if(Math.random()<.55)mk(.7,.6,.05,0xffc878,s[0]<0?-5.98:5.98,1.6,z,{em:0xffb050,ei:.8,cs:false})});
+  }
+  solid(-14,-32,-6,12);solid(6,-32,14,12);solid(-14,9,14,12);solid(-14,-32,14,-24);
+  // lamps
+  [4,-6,-16].forEach((z,i)=>{mk(.12,4.4,.12,0x1c1c1a,i%2?4.2:-4.2,2.2,z);mk(.5,.14,.3,0xffdca0,i%2?4.2:-4.2,4.45,z,{em:0xffc070,ei:1,cs:false});
+    const l=new THREE.PointLight(0xffd9a0,1.1,15);l.position.set(i%2?4.2:-4.2,4.2,z);scene.add(l);extras.push(l);solid((i%2?4.2:-4.2)-.15,z-.15,(i%2?4.2:-4.2)+.15,z+.15)});
+  // loudspeaker pole
+  mk(.1,4,.1,0x1c1c1a,-3.4,2,-1);mk(.5,.3,.3,0x2b2b28,-3.4,4,-.9);
+  // slogan board
+  const sb=ctex(256,96,(x,w,h)=>{x.fillStyle='#5c1a14';x.fillRect(0,0,w,h);x.fillStyle='#e8d8b8';x.font='bold 30px sans-serif';x.textAlign='center';x.fillText('당의 령도 따라 앞으로!',w/2,42);x.font='18px sans-serif';x.fillText('跟隨黨的領導前進',w/2,76)});
+  mk(3.6,1.35,.1,0xffffff,5.7,2.2,-9,{map:sb,r:.6,cs:false}).rotation.y=-Math.PI/2;
+  // booth
+  mk(7,3.4,4.6,0x3a342b,0,1.7,-21,{map:T_WALL,r:1});mk(7.6,.25,5.2,0x1b1a17,0,3.5,-21);
+  const bs=ctex(256,64,(x,w,h)=>{x.fillStyle='#16130f';x.fillRect(0,0,w,h);x.fillStyle='#d8c9a8';x.font='bold 28px sans-serif';x.textAlign='center';x.fillText('第七號配給所',w/2,42)});
+  mk(3.2,.8,.06,0xffffff,0,2.9,-18.66,{map:bs,r:.6,cs:false});
+  mk(3.4,1.0,.5,0x2a241c,0,.5,-18.3);mk(1.8,1.0,.06,0x0a0908,0,1.8,-18.66,{cs:false});
+  solid(-3.5,-23.3,3.5,-18.0);
+  me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
+  scene.add(moon);
+}
+
+/* ================= STORY: title ================= */
+async function showTitle(){
+  hud();
+  await panel({k:'第一章',title:'配給',body:'<p>深夜停電。母親在床上咳。牆上的肖像每週都要擦乾淨。</p><p>你是李恩惠，二十六歲，在邊境小鎮的工廠工作。這一章沒有追逐，只有一個你必須學會的本領：不被注意。</p>',
+    btns:[{id:'go',label:'開始'}]});
+  initAudio();ambient(.05,.04);
+}
+
+/* ================= STORY: night 1 ================= */
+async function night1(){
+  S={food:3,money:0,sus:0,f:{}};hud();
+  buildHome();setMood('night');busy=true;mode='follow';
+  setP(me,-3.2,2.4,Math.PI);camera.position.set(-.6,10.6,9.4);camera.lookAt(-.6,.3,-.1);
+  beat.vol=0;ambient(.05,.04);
+  await fadeTo(0,1400);
+  await caption('第一章　配給','深夜・停電・某邊境小鎮（虛構）',3200);
+  busy=false;
+  hint(coarse?'左下搖桿移動。靠近發亮的物件，點「調查」。':'WASD／方向鍵移動。靠近發亮的物件，按 E 調查。',8000);
+  const need={portrait:0,mother:0};
+  const fin=new Promise(res=>{
+    addIt({x:-3.2,z:-2.7,my:2.8,label:'肖像',run:async it=>{
+      await talk([['','牆上的肖像蒙了一層灰。每週都有人來檢查，它乾不乾淨。']]);
+      const c=await ask('你怎麼擦？',['仔細擦，一遍又一遍','隨便抹兩下'],{time:9,def:1});
+      if(c==0)await talk([['','你擦得很慢，手很穩。玻璃裡映出你自己的臉，你先移開了視線。']]);
+      else{S.sus++;hud();await talk([['','灰還留在邊角。你希望沒有人會注意到。']])}
+      need.portrait=1;it.hide=true}});
+    addIt({x:-.4,z:-2.7,my:2.0,label:'收音機',run:async it=>{
+      initAudio();bcast(0);await sleep(700);
+      const c=await ask('收音機的聲音在整間屋子裡迴盪。',['調小一點','讓它響著'],{time:8,def:1});
+      if(c==0){S.sus++;hud();await talk([['','聲音小了。你忽然想到：有人會聽見「安靜」。']])}
+      else await talk([['','它必須開著。鄰居隔著牆，也在聽你家有沒有開。']])}});
+    addIt({x:-4.2,z:-2.3,my:1.6,label:'米缸',run:async it=>{
+      await talk([['',`米缸底只剩一小撮玉米和碎米。大概還能撐 ${S.food+1} 天。`]]);S.f.sawJar=1}});
+    addIt({x:-1.6,z:2.2,my:.8,label:'鬆動的地板',run:async it=>{
+      if(S.f.took){await talk([['','底下空了。']]);return}
+      await talk([['','有一塊地板的邊緣翹了起來。底下是一個布包。']]);
+      const c=await ask('要拿出來嗎？',['拿出來（存了三年的錢）','不動它']);
+      if(c==0){S.money=30;S.f.took=1;hud();it.hide=true;await talk([['','你把它收進懷裡。布包很輕，輕得讓人想哭。']])}}});
+    addIt({x:3.3,z:-1.5,my:1.4,label:'母親',run:async it=>{
+      await talk([['母親','（咳）……恩惠。是你嗎。'],['母親','杯子空了。']]);
+      const c=await ask('你想怎麼做？',['把水倒給她','把最後的粥熱給她（食物 −1）','不說話，替她把被子蓋好']);
+      if(c==1){S.food=Math.max(0,S.food-1);hud();S.f.fed=1;await talk([['母親','你自己吃。']]),await talk([['','她只吃了兩口，就把碗推回來。']])}
+      else if(c==0)await talk([['母親','謝謝。']]);
+      else await talk([['','她握了一下你的手。很燙。']]);
+      await talk([['母親','他們進來，總是先翻米缸。其他地方……看他們心情。'],['母親','別讓人看見你的眼睛，恩惠。']]);
+      S.f.hint=1;need.mother=1;it.hide=true}});
+    addIt({x:2.9,z:1.5,my:.8,label:'睡覺',keep:1,run:async it=>{
+      if(!(need.portrait&&need.mother)){await talk([['','還不能睡。肖像還沒擦，或者母親還需要你。']]);return}
+      await talk([['','你躺在母親腳邊。她的呼吸很輕，像怕吵醒誰。'],['','天快亮了。']]);res()}});
+  });
+  await fin;busy=true;
+  await fadeTo(1,1400);
+}
+
+/* ================= STORY: street ================= */
+async function street(){
+  buildStreet();setMood('street');busy=true;
+  setP(me,0,6,Math.PI);camera.position.set(0,7.2,14.6);
+  ambient(.04,.05);beat.vol=0;
+  await fadeTo(0,1400);
+  await caption('配給日','清晨・第七號配給所',2800);
+  busy=false;
+  hint('沿著路往前走，到隊伍後面排隊。',7000);
+  const skin={shirt:0x474036,pants:0x24221e,hair:0x1a1a1a};
+  const mkq=(z,c,h)=>{const p=makePerson({shirt:c,pants:0x24221e,hair:h});setP(p,0,z,Math.PI);return p};
+  const qA=mkq(-16,0x3f4a52,0x151515),qB=mkq(-14.4,0x4f3f36,0x2a2a2a),qO=mkq(-12.8,0x3a3a3a,0xb8b8b8);
+  const clerk=makePerson({shirt:0x4a4f35,pants:0x2f3322,cap:0x3a3d2a,hair:0x111111});setP(clerk,0,-19.4,0);
+  let joined=false;
+  const bt=setInterval(()=>{if(scene_.name==='street'&&!inDlg&&!busy)bcast()},19000);
+  const joinP=new Promise(res=>{
+    addIt({x:0,z:-9.6,my:1.6,label:'排進隊伍',keep:1,run:async it=>{joined=true;it.hide=true;res()}});
+    addIt({x:-4.5,z:-3.6,my:1.8,label:'公告欄',run:async()=>{await talk([['公告','『舉報可疑者，獎勵糧票。』'],['','下面的字被撕掉了一塊。']])}});
+  });
+  await joinP;busy=true;
+  await walkTo(me,0,-11.2,2.2);face(me,0,-30);
+  // old man
+  qO.rotation.y=Math.PI;
+  await sleep(500);qO.rotation.y=Math.PI*.75;
+  await talk([['老人','（很低的聲音）……昨天，第七戶少了一個人。'],['老人','別問。']]);
+  const c1=await ask('你怎麼回應？',['「我沒聽見。」','「他去哪了？」','點頭，不說話'],{time:7,def:2});
+  if(c1==1){S.sus++;hud();await talk([['老人','（他把頭轉回去，再也沒開口。）']]);}
+  else if(c1==0)await talk([['老人','……好孩子。']]);
+  else await talk([['','他很輕地呼了一口氣。']]);
+  qO.rotation.y=Math.PI;
+  // queue moves
+  const step=async()=>{await Promise.all([walkTo(qB,0,-16,1.6),walkTo(qO,0,-14.4,1.6),walkTo(me,0,-12.8,1.6)])};
+  sub('配給員：下一個。',2200);await sleep(1400);
+  await walkTo(qA,6.5,-14,2.2);scene.remove(qA);world.remove(qA);
+  await step();
+  sub('配給員：下一個。',2200);await sleep(1400);
+  await walkTo(qB,6.5,-14,2.2);world.remove(qB);
+  await Promise.all([walkTo(qO,0,-16,1.6),walkTo(me,0,-14.4,1.6)]);
+  await talk([['配給員','金同志。你這個月的紀錄有問題。'],['老人','……是。'],['配給員','沒有了。下一個。']]);
+  await walkTo(qO,4.2,-14,1.2);qO.rotation.y=Math.PI*.9;
+  await walkTo(me,0,-16.6,1.8);face(me,0,-30);
+  await talk([['配給員','名字。'],['恩惠','李恩惠。七號工廠。'],['配給員','（翻紀錄）這個月只有這些。']]);
+  S.food+=2;hud();
+  const c2=await ask('兩天份的玉米放在櫃檯上。比上個月少了一半。',['「謝謝，感謝偉大領導者同志的恩惠。」','「少了一半……」','什麼都不說，伸手拿','「我母親病了，能多給一點嗎？」'],{time:9,def:2,who:'配給員'});
+  if(c2==0){S.sus=Math.max(0,S.sus-1);hud();await talk([['配給員','（他點了一下頭，在紀錄上畫了一筆。）']])}
+  else if(c2==1){S.sus+=2;hud();await talk([['配給員','（筆尖停住了。他抬起頭，看著你。）'],['配給員','我記住你了。']])}
+  else if(c2==3){
+    if(S.sus<=1){S.food++;hud();await talk([['配給員','……看在你的紀錄乾淨。'],['','他多推過來一把。你不敢道謝太久。']])}
+    else{S.sus++;hud();await talk([['配給員','每個人都有母親。'],['','他在紀錄上寫了一行字。你看不見寫了什麼。']])}}
+  else await talk([['','你拿起玉米。他沒有看你。這就夠了。']]);
+  await walkTo(me,0,-14.6,2);
+  busy=false;
+  hint('老人坐在牆邊。你可以過去，或直接回家。',7000);
+  // free-walk, old man + aunt zone
+  let auntDone=false;
+  const oldIt=addIt({x:3.7,z:-14,my:2.4,label:'老人',run:async it=>{
+    const c=await ask('老人空著手，坐在牆邊。',['分一半玉米給他（食物 −1）','走開']);
+    if(c==0){S.food=Math.max(0,S.food-1);S.sus++;S.f.gaveOld=1;hud();it.hide=true;
+      await talk([['老人','（他沒有說謝。他把玉米藏進袖子裡，眼睛看著別處。）'],['','遠處，組長看了你一眼。']])}}});
+  const homeIt=addIt({x:0,z:6.4,my:1.6,label:'回家',hide:true,keep:1,run:async it=>{homeRes()}});
+  let homeRes;const homeP=new Promise(r=>homeRes=r);
+  const auntP=new Promise(res=>{
+    const chk=setInterval(()=>{if(!auntDone&&!busy&&me.position.z>-9.5){auntDone=true;clearInterval(chk);res()}},200)});
+  await auntP;busy=true;
+  const aunt=makePerson({shirt:0x6a4a52,pants:0x2a2630,hair:0x222222});setP(aunt,6.5,-8,-Math.PI/2);
+  await walkTo(aunt,me.position.x+.8,me.position.z-.6,2.6);face(aunt,me.position.x,me.position.z);face(me,aunt.position.x,aunt.position.z);
+  await talk([['大嬸','啊，對不起、對不起。（低聲）別出聲。拿著。'],['','一張摺得很小的紙，被壓進你的手心。她的手在抖。']]);
+  const c3=await ask('你的手指還能動。',['握緊，收進袖子','推開（「我不認識你。」）','大喊：「組長，這裡有人——」'],{time:6,def:0,who:''});
+  if(c3==0){S.f.paper=1;S.sus++;hud();await talk([['大嬸','（她看了你一眼，那是一個很短的、感謝的眼神。）']])}
+  else if(c3==1){S.f.pushed=1;await talk([['大嬸','（她的臉一下子白了。她快步走開，沒有回頭。）']])}
+  else{S.f.reported=1;S.sus=Math.max(0,S.sus-2);hud();await talk([['組長','（遠處）誰？'],['','大嬸的眼睛看著你，沒有罵你。那比罵更糟。']])}
+  await walkTo(aunt,6.5,-6,2.6);world.remove(aunt);
+  homeIt.hide=false;busy=false;
+  hint('回家吧。',6000);
+  await homeP;busy=true;clearInterval(bt);
+  await fadeTo(1,1400);
+}
+
+/* ================= STORY: night 2 (raid) ================= */
+class Caught{constructor(m){this.msg=m}}
+const ABORT={};
+const gate=async p=>{const v=await p;if(raid&&raid.over)throw ABORT;return v};
+const rs=ms=>gate(sleep(ms));
+const gw=(p,x,z,sp=1.9)=>gate(walkTo(p,x,z,sp,true));
+
+async function night2(){
+  while(true){
+    const snap=JSON.stringify(S);
+    const r=await attemptRaid();
+    if(r==='win')return;
+    S=JSON.parse(snap);hud();
+  }
+}
+async function attemptRaid(){
+  buildHome();setMood('night');busy=true;mode='follow';
+  insps=[];
+  raid={active:false,over:false,hidden:null,paperAt:null,elapsed:0,breath:100,noise:0,lock:0,holding:false,peek:null,T:46,knocksDone:{}};
+  raid.failP=new Promise(r=>raid.failRes=r);
+  setP(me,-1.2,1.3,0);camera.position.set(-.2,10.6,9.4);
+  me.visible=true;
+  $('slitT').style.display=$('slitB').style.display='none';$('bUI').style.display='none';
+  const hasPaper=!!S.f.paper;S.f.burned=false;
+  beat.vol=.12;beat.bpm=70;ambient(.06,.05);
+  await fadeTo(0,1200);
+  await caption('第二晚','敲門聲從街尾傳來',2600);
+  busy=false;raid.active=true;
+  hint((hasPaper?'時間不多。處理那張紙，然後躲起來。':'時間不多。找地方躲起來。')+'　床底：離母親和檢查員近，光會一直掃過來，但比較少被翻開。衣櫃：離得遠、光少，但他們常常打開它。',11000);
+  $('knockUI').style.display='block';
+  const add=(x,z,my,label,run)=>addIt({x,z,my,label,run});
+  const spotMenu=(key,canHide)=>async it=>{
+    const opts=[];const acts=[];
+    if(canHide){opts.push('躲進去');acts.push('hide')}
+    if(hasPaper&&raid.paperAt!==key&&!S.f.burned){opts.push('把那張紙藏在這裡');acts.push('paper')}
+    if(!opts.length){await talk([['',SPOT[key].name+'。沒有什麼能做的。']]);return}
+    opts.push('算了');acts.push('no');
+    const c=await ask(SPOT[key].name+'。',opts);
+    const a=acts[c];
+    if(a==='paper'){raid.paperAt=key;await talk([['','你把紙塞進'+SPOT[key].name+'。手指碰到的每一寸都像在發燙。']])}
+    if(a==='hide'){await enterHide(key)}
+  };
+  add(-4.2,-2.3,1.6,'米缸',spotMenu('jar',false));
+  add(-1.6,2.2,.8,'地板',spotMenu('floor',false));
+  add(-3.2,-2.7,2.8,'肖像',spotMenu('portrait',false));
+  add(2.5,-1.7,.9,'床底',spotMenu('bed',true));
+  add(3.8,2.3,2.4,'衣櫃',spotMenu('wardrobe',true));
+  if(hasPaper)add(-2.5,1.15,1.6,'燭火',async it=>{
+    if(S.f.burned){await talk([['','只剩灰。']]);return}
+    const c=await ask('燭火在抖。',['把紙燒掉','算了']);
+    if(c==0){S.f.burned=true;raid.paperAt=null;await talk([['','紙邊先捲起來，變黑，一條很細的線在火裡亮了一下，然後沒了。']])}});
+  // knock timeline
+  const ev=[[5,.3,3,'很遠'],[13,.35,3,'遠'],[22,.5,4,'隔了幾戶'],[31,.7,3,'隔壁'],[40,1,5,'門外']];
+  const lab=['很遠','遠','隔了幾戶','隔壁','門外'];
+  let ei=0;
+  await new Promise(resolve=>{
+    const iv=setInterval(()=>{
+      if(raid.over){clearInterval(iv);resolve();return}
+      raid.elapsed+=.1*(raid.hidden?2.6:1);
+      while(ei<ev.length&&raid.elapsed>=ev[ei][0]){const e=ev[ei];knock(e[1],e[2]);$('knockUI').textContent='敲門聲：'+e[3];beat.vol=.12+ei*.1;beat.bpm=70+ei*12;ei++}
+      if(raid.elapsed>=raid.T){clearInterval(iv);resolve()}
+    },100);
+  });
+  $('knockUI').style.display='none';
+  if(raid.over)return 'x';
+  // breach
+  busy=true;$('act').hidden=true;closeDlg();adv=null;choiceKeys=[];
+  if(!raid.hidden){
+    kick();flashFx();stinger();door.tgt=-1.7;
+    await sleep(900);
+    return await caughtEnd('門被踹開的時候，你還站在屋子中間。');
+  }
+  const res=await raidRun();
+  if(res.caught)return await caughtEnd(res.caught);
+  return await winEnd();
+}
+async function enterHide(spot){
+  busy=true;raid.hidden=spot;mode='peek';
+  raid.peek=spot==='bed'?{pos:new THREE.Vector3(3.55,.2,-1.15),look:new THREE.Vector3(0,.55,2.4)}:{pos:new THREE.Vector3(4.5,1.38,2.38),look:new THREE.Vector3(-.5,.9,0)};
+  me.visible=false;interact.forEach(i=>i.hide=true);
+  $('slitT').style.display=$('slitB').style.display='block';$('bUI').style.display='flex';
+  $('act').hidden=true;
+  hint('屏息：按住空白鍵（或按鈕）。氣用完會喘。',6000);
+}
+function threatNow(){
+  const h=HIDE[raid.hidden];let t=0;
+  insps.forEach(p=>{const d=Math.hypot(p.p.position.x-h.x,p.p.position.z-h.z);t+=d<1.6?2:d<3.8?1:0;
+    if(p.f.on&&Math.hypot(p.f.aim.x-h.x,p.f.aim.z-h.z)<1.5&&p.p.position.x>-5.5)t+=1});
+  return Math.min(3,t);
+}
+function raidTick(dt){
+  if(!raid.hidden||raid.over||!raid.started)return;
+  const want=(holdKey||holdBtn);
+  raid.lock=Math.max(0,raid.lock-dt);
+  const holding=want&&raid.breath>0&&raid.lock<=0;
+  if(holding){raid.breath-=13*dt;if(raid.breath<=0){raid.breath=0;raid.lock=1.6;gaspSnd();raid.noise+=.45}}
+  else raid.breath=Math.min(100,raid.breath+(raid.lock>0?8:28)*dt);
+  const th=threatNow();
+  if(th>0){if(!holding)raid.noise+=dt*(.28*th+(S.f.paper&&!S.f.burned&&!raid.paperAt?.12:0));else raid.noise-=dt*.05}
+  else raid.noise-=dt*.25;
+  raid.noise=clamp(raid.noise,0,1.2);
+  beat.vol=.2+th*.22;beat.bpm=76+th*20+raid.noise*30;
+  $('bar1').querySelector('i').style.width=raid.breath+'%';
+  $('bar2').querySelector('i').style.width=Math.min(100,raid.noise*100)+'%';
+  raid.holding=holding;
+  if(raid.noise>=1&&!raid.over){raid.over=true;raid.failRes('你的呼吸聲被聽見了。')}
+}
+function mkInsp(x,z){
+  const p=makePerson({shirt:0x4a4f35,pants:0x2f3322,cap:0x3a3d2a,hair:0x111111});setP(p,x,z,Math.PI/2);
+  p.userData.lock=true;p.userData.aR.rotation.x=-1.3;p.userData.aL.rotation.x=0;
+  const f=makeFlash(p);const o={p,f};insps.push(o);return o;
+}
+async function raidRun(){
+  const R=raid;
+  const order=['jar'].concat(shuf(['floor','portrait']).slice(0,1),(Math.random()<.65?['wardrobe']:['bed']));
+  const rest=['floor','portrait','bed','wardrobe'].filter(k=>!order.includes(k));
+  const all=order.concat(rest);
+  const n=S.sus<2?1:S.sus<4?2:S.sus<6?3:S.sus<8?4:5;
+  const checks=all.slice(0,n);
+  // breach
+  kick();flashFx();stinger();door.tgt=-1.7;candle.userData.on=false;setMood('raid');beat.vol=.3;
+  R.started=true;
+  const A=mkInsp(-6.2,1.0),B=mkInsp(-6.6,1.9);
+  look(A.f,-2,.2,1);look(B.f,-2,.2,2);
+  const hp=HIDE[R.hidden];
+  const inspect=async(who,key)=>{
+    const s=SPOT[key];await gw(who.p,s.stand[0],s.stand[1]);look(who.f,s.aim[0],s.aim[1],s.aim[2]);face(who.p,s.aim[0],s.aim[2]);
+    rummage();await rs(3300);
+    if(key===R.paperAt)throw new Caught('他們從'+s.name+'裡翻出了那張紙。');
+    if(key===R.hidden)throw new Caught(key==='bed'?'手電筒伸進床底，照在你的臉上。':'衣櫃的門被拉開了。');
+  };
+  const wrap=p=>p.catch(e=>{if(e===ABORT)return;if(e instanceof Caught){if(!R.over){R.over=true;R.failRes(e.msg)}}else{console.error(e);if(!R.over){R.over=true;R.failRes('他們找到了你。')}}});
+  await rs(900);
+  sub('組長：搜查。全部人，站出來。',2600);
+  const taskA=wrap((async()=>{
+    await gw(A.p,-3.8,1.1);await gw(A.p,.9,1.1);look(A.f,3,.3,0);await gw(A.p,1.6,1.0);await gw(A.p,1.9,-.2);
+    look(A.f,3.4,.7,-2.6);face(A.p,3.4,-2.6);
+    sub('檢查員：你女兒呢？',2200);await rs(2300);
+    sub('母親：……去親戚家了。（咳）',2500);await rs(2700);
+    sub('檢查員：這麼晚？',2000);await rs(2400);
+    sub('母親：……',1500);await rs(1800);
+    for(const k of checks)if(SPOT[k].who==='A')await inspect(A,k);
+    look(A.f,0,.3,1);await gw(A.p,.9,1.2);
+  })());
+  const taskB=wrap((async()=>{
+    for(const k of checks)if(SPOT[k].who==='B')await inspect(B,k);
+    await gw(B.p,.3,1.3);face(B.p,hp.x,hp.z);
+    sub('（手電筒的光掃進臥室。）',2500);
+    const pts=[[hp.x-1.6,hp.z],[hp.x,hp.z],[hp.x+1.1,hp.z-.2],[hp.x-.2,hp.z+.2],[hp.x-2.4,hp.z],[hp.x,hp.z]];
+    for(const q of pts){look(B.f,q[0],.7,q[1]);await rs(1150)}
+    look(B.f,-1,.3,2);
+  })());
+  const outcome=await Promise.race([Promise.all([taskA,taskB]).then(()=>({ok:1})),R.failP.then(m=>({caught:m}))]);
+  if(outcome.caught)return outcome;
+  if(R.over)return {caught:'……'};
+  sub('檢查員：走。隔壁。',2500);
+  await Promise.all([gw(A.p,-4.8,1.1,2.2),gw(B.p,-4.8,1.5,2.2)]).catch(()=>{});
+  await Promise.all([gw(A.p,-7,1,2.4),gw(B.p,-7,1.6,2.4)]).catch(()=>{});
+  A.f.on=B.f.on=false;
+  return {ok:1};
+}
+async function caughtEnd(msg){
+  raid.over=true;raid.active=false;movers.length=0;beat.vol=0;
+  if(!raid.hidden||raid.noise>=1)gaspSnd();stinger();flashFx();
+  $('bUI').style.display='none';
+  await sleep(500);await fadeTo(1,900);
+  $('slitT').style.display=$('slitB').style.display='none';
+  const c=await panel({k:'被發現了',title:'他們把你帶走了',body:'<p>'+msg+'</p><p class="small">畫面沒有繼續。你不會知道之後的事。</p>',btns:[{id:'retry',label:'重來這一夜'}]});
+  mode='follow';raid=null;
+  return 'caught';
+}
+async function winEnd(){
+  raid.active=false;
+  // exit hiding
+  await sleep(1400);
+  beat.vol=.08;beat.bpm=60;
+  sub('（門外的腳步聲遠了。）',3000);await sleep(3200);
+  knock(.5,3);sub('（隔壁的門被敲響。）',3000);await sleep(2600);
+  kick();await sleep(1200);
+  for(let i=0;i<5;i++){nz(.18,.2,'lowpass',200,1,i*.6)}
+  sub('（腳步聲。一聲悶響。然後什麼都沒有了。）',5000);
+  await sleep(5200);
+  ambient(.03,.02);beat.vol=0;
+  mode='follow';$('slitT').style.display=$('slitB').style.display='none';$('bUI').style.display='none';
+  const h=HIDE[raid.hidden];me.visible=true;setP(me,raid.hidden==='bed'?2.3:3.7,raid.hidden==='bed'?-1.6:2.3,Math.PI*.5);
+  setMood('night');candle.userData.on=false;hemi.intensity=.3;
+  insps.forEach(i=>{i.f.on=false});
+  busy=true;
+  await walkTo(me,3,-.2,1.6);face(me,3.7,-2.4);
+  await talk([['','你站在黑暗裡，過了很久才發現自己還在發抖。']]);
+  if(S.f.reported)await talk([['','被帶走的，是那個把紙塞給你的人家。你知道為什麼。']]);
+  else if(S.f.paper||S.f.pushed)await talk([['','被帶走的，是那個在街上碰過你的人家。你不敢去想為什麼。']]);
+  else await talk([['','被帶走的是隔壁。你沒有問為什麼。']]);
+  if(S.f.paper&&!S.f.burned&&raid.paperAt)await talk([['','你從藏的地方把紙取出來，在黑暗裡摸索著打開。上面沒有字。只有邊角畫了一條彎彎的線，像一條河。']]);
+  else if(S.f.paper&&S.f.burned)await talk([['','你燒掉了它。你再也不會知道那條線指向哪裡，但你知道，它指向外面。']]);
+  else if(S.f.paper)await talk([['','你把紙從懷裡取出來，在黑暗裡摸索著打開。上面沒有字。只有邊角畫了一條彎彎的線，像一條河。']]);
+  ambient(0,0);beat.vol=0;await sleep(1600);
+  sub('母親：恩惠……',9000);nz(.3,.06,'lowpass',200);await Promise.all([speakKo('은혜야…',.6),sleep(3000)]);await sleep(1800);
+  sub('母親：不管發生什麼事，都不要回頭。',12000);await Promise.all([speakKo('무슨 일이 있어도, 뒤돌아보지 마.',.62),sleep(3500)]);await sleep(2000);$('subt').style.opacity=0;
+  const cm=await ask('她在黑暗裡，叫你的名字。',['「媽。」','沒有出聲'],{time:8,def:1});
+  S.f.momAns=cm==0?1:0;ambient(.03,.02);
+  if(cm==0)await talk([['母親','（很輕的氣聲）……嗯。'],['','她沒有再說別的。你記得這個聲音。你會一直記得。']]);
+  else await talk([['','你沒有出聲。黑暗裡，她也沒有再叫第二次。']]);
+  await talk([['母親','恩惠。'],['母親','你得走了。'],['','她沒有哭。她只是很清楚地說了這句話，像在說一件早就算好的事。']]);
+  await fadeTo(1,1800);
+  return 'win';
+}
+
+/* ================= STORY: ending ================= */
+
+async function ending(){
+  const eyes=clamp(S.sus,0,6);
+  const paper=S.f.paper?(S.f.burned?'燒掉了':'留著'):'沒有';
+  SAVE.c1={paper:!!S.f.paper,burned:!!S.f.burned,reported:!!S.f.reported,pushed:!!S.f.pushed,fed:!!S.f.fed,took:!!S.f.took,sus:S.sus,food:S.food,money:S.money,mom:!!S.f.momAns,heard:true};
+  await panel({k:'第一章　完',title:'你得走了',
+    body:'<dl><dt>食物</dt><dd>'+S.food+'</dd><dt>錢</dt><dd>'+S.money+'</dd><dt>被注視</dt><dd>'+'●'.repeat(eyes)+'○'.repeat(6-eyes)+'</dd><dt>那張紙</dt><dd>'+paper+'</dd></dl><p>下一章，你要在夜裡穿過蘆葦與鐵絲網，抵達那條河。你在這裡做的選擇，會被帶著走。</p>',
+    btns:[{id:'go',label:'進入第二章　渡河'}]});
+}
+function hud(){$('hF').textContent=S.food;$('hM').textContent=S.money;const n=clamp(S.sus,0,6);$('hE').textContent='●'.repeat(n)+'○'.repeat(6-n)}
+
+  return {async play(){
+    H.reset();H.raidTick=raidTick;setHud(HUD1,'第一章　配給');
+    S={food:3,money:0,sus:0,f:{}};
+    $('fade').style.opacity=1;await showTitle();await night1();await street();await night2();await ending();
+  }};
+}
+function mkCH3(){
+/* ================= chapter 3 ================= */
+// raid = hide-state object (kept name so the shared loop code works)
+function hud(){const l=clamp(S.lang,0,5);$('hL').textContent='●'.repeat(l)+'○'.repeat(5-l);const n=clamp(S.sus,0,6);$('hE').textContent='●'.repeat(n)+'○'.repeat(6-n)}
+function LT(full,key,need){return S.lang>=need?full:'（你聽不懂。只抓到：「'+key+'」）'}
+function cornMat(c){const m=new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide});
+  m.onBeforeCompile=sh=>{sh.uniforms.uTime=swayU;
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\ntransformed.x+=sin(uTime*1.7+instanceMatrix[3].x*.9+instanceMatrix[3].z*.7)*.06*position.y;\n#endif')};return m}
+function mood(m){
+  if(m==='dawn'){scene.background=new THREE.Color(0x3a4a68);scene.fog=new THREE.FogExp2(0x3a4a68,.026);hemi.color.set(0xb4c4e0);hemi.intensity=1.3;moon.color.set(0xffb88a);moon.intensity=.6;
+    sc.left=-14;sc.right=14;sc.top=14;sc.bottom=-14;candle.userData.on=false;rain.visible=false}
+  else if(m==='farm'){scene.background=new THREE.Color(0x06080b);scene.fog=new THREE.FogExp2(0x06080b,.02);hemi.color.set(0x5a6a80);hemi.intensity=.6;candle.userData.base=2.8;moon.color.set(0x8fa8c8);moon.intensity=.35;moon.position.set(-4,10,7);moon.target.position.set(0,0,0);
+    sc.left=-9;sc.right=9;sc.top=9;sc.bottom=-9;candle.userData.on=true;candle.distance=14;candle.color.set(0xffd9a0);candle.position.set(-1.2,2.7,.4);rain.visible=false}
+  else if(m==='road'){scene.background=new THREE.Color(0x3a465c);scene.fog=new THREE.FogExp2(0x3a465c,.03);hemi.color.set(0xb0bdd6);hemi.intensity=.9;moon.color.set(0xffc9a0);moon.intensity=.7;
+    sc.left=-14;sc.right=14;sc.top=14;sc.bottom=-14;candle.userData.on=false;rain.visible=false}
+  moon.target.updateMatrixWorld();
+}
+function person(o,x,z,ry){const p=makePerson(o);setP(p,x,z,ry);return p}
+
+/* ----- field ----- */
+function buildField(){
+  clearWorld();scene_.name='field';
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(60,80),new THREE.MeshStandardMaterial({map:T_MUD,roughness:1,color:0x6a7a5a}));g.rotation.x=-Math.PI/2;g.position.set(0,0,-8);g.receiveShadow=true;world.add(g);
+  const sGeo=new THREE.BoxGeometry(.07,1.9,.07);sGeo.translate(0,.95,0);
+  const lGeo=new THREE.BoxGeometry(.6,.03,.11);lGeo.translate(.3,1.25,0);
+  const pts=[];
+  for(let x=-16;x<=16;x+=1.15)for(let z=11;z>-24;z-=.85){if(Math.abs(x)<.75&&z>-16)continue;pts.push([x+rnd(-.2,.2),z+rnd(-.2,.2)])}
+  const st=new THREE.InstancedMesh(sGeo,cornMat(0x5f7a3a),pts.length),lf=new THREE.InstancedMesh(lGeo,cornMat(0x6f8a45),pts.length*2);
+  const d=new THREE.Object3D();
+  pts.forEach((p,i)=>{d.position.set(p[0],0,p[1]);d.rotation.set(0,rnd(0,6.28),0);d.scale.setScalar(rnd(.85,1.15));d.updateMatrix();st.setMatrixAt(i,d.matrix);
+    d.position.set(p[0],rnd(-.2,.1),p[1]);d.rotation.set(0,rnd(0,6.28),rnd(-.25,.1));d.updateMatrix();lf.setMatrixAt(i*2,d.matrix);
+    d.position.set(p[0],rnd(-.5,-.2),p[1]);d.rotation.set(0,rnd(0,6.28),rnd(-.25,.1));d.updateMatrix();lf.setMatrixAt(i*2+1,d.matrix)});
+  st.castShadow=true;st.receiveShadow=true;lf.castShadow=true;world.add(st);world.add(lf);
+  // far house + light
+  mk(6,3,4,0x2c2a28,0,1.5,-28);mk(6.6,.3,4.6,0x1a1816,0,3.1,-28);mk(.9,.8,.05,0xffc878,0,1.5,-25.97,{em:0xffb050,ei:1,cs:false});
+  const l=new THREE.PointLight(0xffc070,1.3,16);l.position.set(0,1.6,-24.5);scene.add(l);extras.push(l);
+  solid(-17,-30,17,-26);solid(-17,-30,-16.5,13);solid(16.5,-30,17,13);solid(-17,12.2,17,13);
+  // scarecrow
+  mk(.08,2,.08,0x4a3a22,4.5,1,-4);mk(1.3,.07,.07,0x4a3a22,4.5,1.6,-4);
+  me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
+  scene.add(moon);
+}
+async function field(){
+  buildField();mood('dawn');busy=true;mode='follow';raid=null;
+  setP(me,0,9,Math.PI);me.rotation.y=Math.PI;camera.position.set(0,7.2,17);
+  ambient(.03,.06);beat.vol=0;
+  await fadeTo(0,1800);
+  await caption('第三章　藏身','河的另一邊・天亮之前',3200);
+  await talk([['','你不記得自己是怎麼爬上岸的。衣服還是濕的，手指發白。'],['','四周是比人還高的玉米。風一吹，全部一起沙沙響。']]);
+  busy=false;
+  hint(coarse?'左下搖桿移動。點發亮的物件。':'WASD 移動。靠近發亮的物件，按 E。',7000);
+  let met=false,metRes;const metP=new Promise(r=>metRes=r);
+  const trig=()=>{if(!met){met=true;metRes()}};
+  let n=0;
+  addIt({x:-3,z:7,my:1,label:'水窪',run:async it=>{
+    await talk([['','水窪裡映出一張你自己都不太認得的臉。']]);
+    const c=await ask('你很渴。',['喝一點','不喝']);
+    if(c==0)await talk([['','很冰。有泥味。你喝了很多。']]);
+    it.hide=true;if(++n>=2)hint('遠處的玉米田盡頭，有一戶人家亮著燈。',5000)}});
+  addIt({x:4.5,z:-3.2,my:2.4,label:'稻草人',run:async it=>{
+    await talk([['','稻草人身上掛著一件舊外套，肩膀破了。']]);
+    const c=await ask('你很冷。',['拿走','不動']);
+    if(c==0){S.f.coat=1;await talk([['','它比你身上的乾。你不知道這算偷，還是撿。']])}
+    it.hide=true;if(++n>=2)hint('遠處的玉米田盡頭，有一戶人家亮著燈。',5000)}});
+  addIt({x:0,z:-9,my:1.8,label:'遠處的燈',run:async it=>{
+    await talk([['','玉米田盡頭有一戶人家亮著燈。你已經好幾天沒有看過活人的燈了。']]);
+    trig();it.hide=true}});
+  const zi=setInterval(()=>{if(me.position.z<-10&&!busy)trig();if(met)clearInterval(zi)},300);
+  await metP;busy=true;
+  // meeting
+  const ch=makePerson({shirt:0x7a5a4a,pants:0x2a2a30,hair:0x1a1a1a,pony:false});setP(ch,6.5,me.position.z-3,-Math.PI/2);
+  {const b=mkb(.34,.24,.34,0x6a5a3a,0,1.0,.3);ch.add(b)}
+  await sleep(500);
+  await talk([['','腳步聲。有人在玉米中間走。你蹲下來，把自己縮到最小。']]);
+  await walkTo(ch,me.position.x+1.1,me.position.z-1.0,1.7);face(ch,me.position.x,me.position.z);face(me,ch.position.x,ch.position.z);
+  await talk([['春花','（很低，用你的話）別叫。我不是他們。'],['春花','你是從河那邊過來的吧。']]);
+  const c1=await ask('她看著你的手。你的手在抖。',['「……是。」','「不是，我迷路了。」','不回答'],{who:''});
+  if(c1==0){S.r.chun++;S.f.truth=1;await talk([['春花','我知道。我看你的鞋就知道了。']])}
+  else if(c1==1){await talk([['春花','（她笑了一下，很淡。）我當年也這樣說。']])}
+  else await talk([['','她等了一會兒，沒有再問。']]);
+  await talk([['','她解下自己的外套，披在你肩上。你抖得更厲害了。'],['春花','先別說話。家裡有熱水。'],['春花','路上有人問，你就是我娘家的表妹。聽懂了嗎？']]);
+  const c2=await ask('你不認識她。',['跟她走','退後一步，不動'],{time:10,def:0});
+  if(c2==1){await talk([['春花','（她沒有逼你。）那你自己決定。天亮之後，這裡會有人來收玉米。'],['','遠處傳來引擎聲。你沒有別的路。你跟上去了。']])}
+  else S.r.chun+=0;
+  await fadeTo(1,1400);
+}
+function mkb(w,h,d,c,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.9,flatShading:true}));m.position.set(x,y,z);m.castShadow=true;return m}
+
+/* ----- farm house ----- */
+const FM={};
+function buildFarm(){
+  clearWorld();scene_.name='farm';
+  const fl_=new THREE.Mesh(new THREE.PlaneGeometry(10.4,7.4),new THREE.MeshStandardMaterial({map:T_WOOD,roughness:.85}));fl_.rotation.x=-Math.PI/2;fl_.receiveShadow=true;world.add(fl_);
+  const wl={map:T_WALL,r:1};
+  mk(10.4,3,.2,0x3a3a34,0,1.5,-3.6,wl);mk(.2,2.4,3.9,0x3a3a34,-5.1,1.2,-1.65,wl);mk(.2,2.4,1.9,0x3a3a34,-5.1,1.2,2.65,wl);mk(.2,2.4,7.4,0x3a3a34,5.1,1.2,0,wl);
+  mk(.2,2.6,3.9,0x3a3a34,1.5,1.3,-1.65,wl);mk(.2,2.6,1.9,0x3a3a34,1.5,1.3,2.65,wl);
+  solid(-5.4,-3.9,5.4,-3.4);solid(-5.4,-3.9,-4.95,.3);solid(-5.4,1.7,-4.95,3.9);solid(4.95,-3.9,5.4,3.9);solid(1.4,-3.6,1.6,.3);solid(1.4,1.7,1.6,3.6);solid(-5.4,3.45,5.4,3.9);solid(-5.4,.3,-4.9,1.7);
+  // open door
+  const dp=mk(.07,2.1,1.2,0x2a1c12,-4.5,1.05,-.25);dp.rotation.y=-.2;
+  // storeroom
+  mk(1.75,2.3,.15,0x33302a,4.15,1.15,.9,wl);mk(.15,2.3,1.15,0x33302a,3.3,1.15,1.45,wl);mk(.15,2.3,.55,0x33302a,3.3,1.15,3.2,wl);
+  solid(3.2,.82,5.0,.98);solid(3.22,.82,3.38,2.0);solid(3.22,3.0,3.38,3.5);
+  mk(.5,.45,.4,0x6a5a3a,4.6,.22,1.4);mk(.5,.4,.4,0x6a5a3a,4.5,.2,1.9);mk(.45,.35,.4,0x7a6a4a,4.65,.17,3.2);mk(.9,.04,1.8,0x4a4030,4.1,.03,2.6,{cs:false});
+  // window
+  mk(1.3,1.1,.05,0x9fc0e0,-.4,1.9,-3.47,{em:0x8fb8e8,ei:.5,cs:false});mk(1.5,.08,.08,0x15110d,-.4,1.35,-3.45);mk(1.5,.08,.08,0x15110d,-.4,2.45,-3.45);mk(.08,1.2,.08,0x15110d,-.4,1.9,-3.45);
+  // table
+  mk(1.7,.1,.95,0x4a3626,-2.5,.78,.2);[[-.75,-.4],[.75,-.4],[-.75,.4],[.75,.4]].forEach(a=>mk(.1,.74,.1,0x3a2a1c,-2.5+a[0],.37,.2+a[1]));solid(-3.4,-.3,-1.6,.7);
+  cyl(.12,.09,.07,0xd8d0c0,-2.9,.86,.1);cyl(.12,.09,.07,0xd8d0c0,-2.1,.86,.1);
+  // tv
+  mk(1.1,.7,.5,0x2a1f16,-3.2,.35,-3.2);mk(.9,.55,.12,0x0c0c0c,-3.2,1.0,-3.2);FM.tv=mk(.78,.42,.03,0x9fd0ff,-3.2,1.02,-3.13,{em:0x6fa8e0,ei:1,cs:false});solid(-3.8,-3.5,-2.6,-2.9);
+  // shelf + phone
+  mk(1.4,.07,.34,0x3a2a1c,-.4,1.15,-3.3);FM.phone=mk(.12,.02,.22,0x111111,-.4,1.2,-3.3,{cs:false});
+  // stove
+  mk(.9,.6,.7,0x1c1c1a,-4.3,.3,1.2);cyl(.25,.25,.2,0x0e0e0e,-4.3,.7,1.2);solid(-4.8,.8,-3.8,1.6);
+  // desk
+  mk(1.2,.08,.6,0x3a2a1c,-1.6,.75,2.9);mk(.08,.72,.08,0x2a1c12,-2.1,.36,2.7);mk(.08,.72,.08,0x2a1c12,-1.1,.36,2.7);mk(.08,.72,.08,0x2a1c12,-2.1,.36,3.1);mk(.08,.72,.08,0x2a1c12,-1.1,.36,3.1);solid(-2.2,2.55,-1.0,3.3);
+  FM.book=mk(.4,.04,.3,0x7a3030,-1.6,.82,2.9,{cs:false});
+  // bed + Lao Cui
+  [[-.7,-1.2],[.7,-1.2],[-.7,1.2],[.7,1.2]].forEach(a=>mk(.1,.38,.1,0x2a1c12,3.7+a[0],.19,-2.2+a[1]));
+  mk(1.6,.14,2.7,0x4a3a2a,3.7,.42,-2.2);mk(1.5,.16,1.7,0x56604a,3.7,.57,-1.7);mk(.7,.1,.5,0xc8c2b0,3.7,.55,-3.0);
+  mk(.26,.26,.26,0xb8967c,3.7,.72,-3.0);mk(.28,.1,.28,0x6a6a6a,3.7,.82,-3.02);solid(2.85,-3.5,4.55,-.9);
+  mk(.4,.4,.4,0x3a2a1c,2.45,.2,-3.0);cyl(.07,.07,.2,0xdddddd,2.45,.5,-3.0);
+  FM.chun=person({shirt:0x7a5a4a,pants:0x2a2a30,hair:0x1a1a1a},-3.5,1.9,Math.PI*.9);
+  FM.zhe=person({shirt:0x3a4a6a,pants:0x24262c,hair:0x151515},-1.6,2.1,0);
+  me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
+  scene.add(moon);
+}
+// hiding minigame
+function enterHide(cam,danger0=0){
+  raid={active:true,hidden:true,started:true,danger:danger0,breath:100,noise:0,lock:0,failed:false,peek:cam,over:false};
+  mode='peek';me.visible=false;$('slitT').style.display=$('slitB').style.display='block';$('bUI').style.display='flex';$('act').hidden=true;
+  hint('屏息：按住空白鍵（或按鈕）。',5000);busy=true;
+}
+function leaveHide(){
+  mode='follow';me.visible=true;$('slitT').style.display=$('slitB').style.display='none';$('bUI').style.display='none';beat.vol=0;
+  const f=raid?raid.failed:false;raid=null;return f;
+}
+const STORE_CAM=()=>({pos:new THREE.Vector3(4.15,.95,2.5),look:new THREE.Vector3(-1,.9,1.2)});
+async function danger(n,ms){if(raid)raid.danger=n;await sleep(ms);if(raid)raid.danger=0}
+function raidTick(dt){
+  if(!raid||!raid.hidden)return;
+  const want=(holdKey||holdBtn);raid.lock=Math.max(0,raid.lock-dt);
+  const holding=want&&raid.breath>0&&raid.lock<=0;
+  if(holding){raid.breath-=13*dt;if(raid.breath<=0){raid.breath=0;raid.lock=1.6;gaspSnd();raid.noise+=.45}}
+  else raid.breath=Math.min(100,raid.breath+(raid.lock>0?8:28)*dt);
+  const th=raid.danger;
+  if(th>0){if(!holding)raid.noise+=dt*.3*th;else raid.noise-=dt*.05}else raid.noise-=dt*.25;
+  raid.noise=clamp(raid.noise,0,1.2);
+  beat.vol=.12+th*.2;beat.bpm=70+th*22+raid.noise*30;
+  $('bar1').querySelector('i').style.width=raid.breath+'%';$('bar2').querySelector('i').style.width=Math.min(100,raid.noise*100)+'%';
+  if(raid.noise>=1&&!raid.failed){raid.failed=true;raid.noise=.7;gaspSnd();sub('（你發出了聲音。）',1600)}
+}
+const askH=async(q,o,opt)=>{const b=$('bUI').style.display;$('bUI').style.display='none';const c=await ask(q,o,opt);if(raid)$('bUI').style.display=b;return c};
+
+/* ---- day 1 ---- */
+async function day1(){
+  buildFarm();mood('farm');busy=true;mode='follow';
+  setP(me,-4.0,-.3,Math.PI/2);camera.position.set(-.6,10.6,9.4);camera.lookAt(-.6,.3,-.1);
+  ambient(.05,.04);beat.vol=0;
+  await fadeTo(0,1400);
+  await caption('第一天','金家的屋子',2600);
+  busy=false;
+  hint('在屋裡走一走。吃飯，然後和老崔說說話。',7000);
+  const need={meal:0,cui:0};
+  await new Promise(res=>{
+    addIt({x:-2.5,z:1.3,my:1.5,label:'吃飯',run:async it=>{
+      if(need.meal){await talk([['','碗已經空了。']]);return}
+      await talk([['春花','吃。別客氣。'],['','白飯、一小碟鹹菜、一個煎蛋。蛋只有一個。'],['小哲',LT('（用中文對母親）她是誰？我們要養她到什麼時候？','誰、養',1)]]);
+      FM.zhe.rotation.y=Math.PI;
+      const c=await ask('蛋只有一個。',['吃掉','留給老崔','推給小哲']);
+      if(c==0)await talk([['','你吃得很慢。每一口都像在偷。']]);
+      else if(c==1){S.r.cui++;S.r.chun++;await talk([['春花','（她看了你一會兒。）他有他的份。……你吃你的。']])}
+      else{S.r.zhe++;await talk([['小哲','（他把蛋推回來，沒有看你。）我不吃。']])}
+      const n=await ask('春花問你的名字。',['說真名：李恩惠','說一個假名','不說'],{who:'春花'});
+      if(n==0){S.r.chun++;S.f.real=1;await talk([['春花','恩惠。……我叫金春花。你可以叫我春花姐。']])}
+      else if(n==1){S.f.fake=1;await talk([['春花','（她點頭，沒有拆穿。）好。']])}
+      else await talk([['春花','這裡不用名字。你叫「表妹」就行。']]);
+      need.meal=1;it.hide=true}});
+    addIt({x:2.55,z:-1.8,my:1.4,label:'老崔',run:async it=>{
+      if(need.cui){await talk([['老崔','（他對你很輕地點了一下頭。）']]);return}
+      await talk([['老崔','（很小的聲音，嘴唇幾乎沒動）過來。'],['老崔','別信她。'],['老崔','……也別恨她。'],['老崔','今晚她會打電話。你聽。']]);
+      const c=await ask('他看著你。',['問他：為什麼告訴我？','說：我母親也病著','什麼都不說']);
+      if(c==0){S.r.cui++;await talk([['老崔','因為我躺了四年，什麼都做不了。能做的只有說話。']])}
+      else if(c==1){S.r.cui+=2;await talk([['老崔','（他閉上眼睛很久。）會好的。……不會好的。但你要這樣想。']])}
+      else await talk([['老崔','（他把頭轉向牆。）']]);
+      need.cui=1;it.hide=true}});
+    addIt({x:-3.2,z:-2.5,my:2.0,label:'電視',run:async it=>{
+      await talk([['','電視在播新聞。女人的聲音很平，語速很快。'],['新聞',LT('各村加強查戶口，發現無證人員立即通報。','查、人',2)]]);
+      if(S.lang>=2)S.f.checks=1}});
+    addIt({x:-.7,z:2.0,my:1.4,label:'小哲的書桌',run:async it=>{
+      if(S.f.book){await talk([['','他的課本在桌上。你沒再碰。']]);return}
+      await talk([['小哲','（他把書按住，抬頭看你。）別碰。']]);
+      const c=await ask('他的眼神很硬。',['退開','「我想學。」']);
+      if(c==1){S.r.zhe++;S.lang++;S.f.book=1;hud();await talk([['小哲','（很長一段沉默。他把書推到桌邊，什麼都沒說。）'],['','你指著一個字。他極小聲念了一遍：「身分證。」']])}
+      else{S.f.afraid=1;await talk([['','他把書闔上。你聽見自己的呼吸。']])}}});
+    addIt({x:-.4,z:-2.6,my:1.7,label:'手機',run:async it=>{await talk([['','春花的手機放在架子上，螢幕朝下。你沒動它。']])}});
+    addIt({x:3.9,z:2.6,my:1.2,label:'睡覺',run:async it=>{
+      if(!(need.meal&&need.cui)){await talk([['','還不能睡。先吃點東西，也和老崔說說話。']]);return}
+      await talk([['','春花給你一床舊棉被。儲藏室只有一個小窗，窗外是黑的。']]);res()},keep:1});
+  });
+  busy=true;await fadeTo(1,1200);
+}
+
+/* ---- night 1 ---- */
+async function night1(){
+  buildFarm();mood('farm');busy=true;mode='follow';
+  FM.chun.visible=false;FM.zhe.visible=false;
+  setP(me,3.9,2.6,Math.PI/2);candle.userData.on=false;hemi.intensity=.22;moon.intensity=.25;
+  camera.position.set(.6,10.6,9.4);ambient(.04,.03);
+  await fadeTo(0,1400);
+  await caption('夜','儲藏室',1800);
+  busy=false;hint('靠近牆壁，聽聽外面。',5000);
+  const done=new Promise(res=>{
+    if(!S.f.book)addIt({x:-.7,z:2.0,my:1.4,label:'偷看課本',run:async it=>{
+      await talk([['','你在黑暗裡摸到那本書。每個字都像一道你沒學過的門。']]);
+      S.lang++;S.f.peek=1;hud();it.hide=true;await talk([['','你記下了三個詞：「人」、「錢」、「走」。']])}});
+    addIt({x:3.5,z:2.6,my:1.3,label:'貼著牆聽',keep:1,run:async it=>{
+      busy=true;it.hide=true;
+      await sleep(900);
+      await talk([['','牆那邊有人壓低聲音。是春花，她在講電話。']]);
+      sub('春花（電話裡）：'+LT('……人在我這兒。對，是個女的，二十多歲，身體還行。','人',2),4500);await sleep(4600);
+      sub('春花（電話裡）：'+LT('……就按說好的數目。老崔的藥，你知道的。','錢、藥',3),4500);await sleep(4600);
+      await talk([['',S.lang>=2?'你聽懂了「女的」和「身體還行」。兩個詞，讓你的後頸發涼。':'你只聽懂一個詞：「人」。還有一個數字。'],['','她掛掉電話，很久沒有動。你聽見她在黑暗裡吸了一口氣。']]);
+      const c=await ask('你要怎麼辦？',['明天直接問她','什麼都不說，繼續觀察','去告訴老崔你聽見了']);
+      if(c==0)S.f.confront=1;
+      else if(c==2){S.f.toldCui=1;S.r.cui++;await talk([['老崔','（他早就醒著。）……我知道。我早就知道。'],['老崔','她不是壞人。這才是最難的。']])}
+      await talk([['','你躺回棉被裡。天花板有一塊水漬，形狀像一條河。']]);
+      res()}});
+  });
+  await done;busy=true;await fadeTo(1,1400);
+}
+
+/* ---- day 2 ---- */
+async function day2(){
+  buildFarm();mood('farm');busy=true;mode='follow';raid=null;
+  setP(me,3.9,2.6,Math.PI/2);camera.position.set(-.6,10.6,9.4);ambient(.05,.04);
+  FM.chun.rotation.y=Math.PI*.9;
+  await fadeTo(0,1200);
+  await caption('第二天','',1500);
+  busy=false;
+  if(S.f.confront){
+    await talk([['','春花在灶邊。你走過去，她沒有回頭。'],['恩惠','昨晚……我聽見了。'],['春花','（她放下鍋鏟。）……聽見多少。']]);
+    await ask('你怎麼說？',['「一個數字。」','「我聽見你叫我『人』。」','「我什麼都沒聽見。」'],{who:''});
+    await talk([['春花','十年前，我也躺在田裡。也有一個人披外套給我。那個人收了我一筆錢，我到現在還在還。'],['春花','我不收你的錢。可是周先生要人。他給的錢，剛好夠老崔的藥。'],['春花','我沒有騙你說我是好人。我只是……不知道怎麼同時是兩種。']]);
+    S.f.knows=1;
+    const c=await ask('她終於轉過來看你。',['「我走。你不用再為難。」','「你可以選。你不是只能這樣。」','什麼都不說，把碗收起來']);
+    if(c==0){await talk([['春花','你走得到哪裡？外面每個路口都在查。']])}
+    else if(c==1){S.r.chun--;await talk([['春花','（她的眼睛一下子紅了。）你還沒有資格這樣說。……但你說得對。']])}
+    else{S.r.chun++;await talk([['','她看著你把碗一個一個疊好。她沒有道謝，但肩膀放鬆了。']])}
+  }else{
+    await talk([['','早飯很安靜。春花不看你的眼睛。小哲先出門，沒有說再見。']]);
+  }
+  // neighbor
+  await sleep(500);
+  knock(.4,3);await talk([['春花','（低聲）躲進去。快。']]);
+  busy=true;
+  enterHide(STORE_CAM());
+  const li=person({shirt:0xb06a3a,pants:0x2a2630,hair:0x444444},-4.6,.9,Math.PI/2);
+  await sleep(1200);
+  await walkTo(li,-1.8,1.1,1.6);face(li,-3,.5);
+  sub('李嫂：'+LT('春花啊，借點鹽。','鹽',2),3200);await sleep(3600);
+  sub('春花：'+LT('好，等一下。','好',2),2200);await sleep(2600);
+  sub('李嫂：'+LT('你家今天怎麼這麼安靜？','安靜',2),3200);await danger(1,3400);
+  FM.cui_cough=1;nz(.5,.2,'bandpass',500,1);
+  sub('李嫂：'+LT('老崔，今天怎麼樣？','老崔',2),3000);await walkTo(li,1.0,1.0,1.4);await danger(1,2200);
+  sub('李嫂：'+LT('聽說鎮上要來查戶口了。你們家……沒問題吧？','查戶口',3),4200);face(li,4,2.4);await danger(2,3600);
+  if(raid.failed){sub('李嫂：'+LT('嗯？儲藏室裡有東西在響？','儲藏室',3),3200);await sleep(1000);sub('春花：'+LT('老鼠。這屋子老了。','老鼠',2),2600);await sleep(3000);S.f.neighbor=1;S.sus+=2;hud()}
+  await walkTo(li,-4.8,1.0,1.7);world.remove(li);
+  const failed=leaveHide();
+  await talk([['','腳步聲遠了。你扶著牆站起來，手掌全是汗。']]);
+  if(failed)await talk([['春花','（低聲）她聽見了。……不一定。但她那種人，不一定的事，最後都會變成一定。']]);
+  // afternoon free
+  busy=false;S.f.waitDone=0;
+  hint('下午很長。你可以四處看看，等天黑。',6000);
+  await new Promise(res=>{
+    addIt({x:2.55,z:-2.7,my:1.2,label:'藥',run:async it=>{
+      await talk([['','床邊有一盒止痛藥，只剩一半。盒蓋上有鉛筆畫的記號：一天一個。'],['','你看不懂價錢，但看得懂那些記號是怎麼一天一天省下來的。']]);S.f.med=1}});
+    addIt({x:-.4,z:-2.6,my:1.7,label:'手機',run:async it=>{
+      if(S.f.knows||S.f.confront){await talk([['','你翻開通訊錄。大部分是名字加一個數字。有一個備註只有「周」。'],['','你把它放回去，螢幕朝下，和原來一模一樣。']]);S.f.phone=1}
+      else await talk([['','螢幕朝下。你的手停在半空中，最後放下了。']])}});
+    addIt({x:-2.5,z:1.3,my:1.5,label:'幫忙洗碗',run:async it=>{
+      await talk([['','你默默洗了碗。春花看了一眼，沒有說話。'],['春花','……你手腳挺俐落的。']]);S.r.chun++;it.hide=true}});
+    addIt({x:3.9,z:2.6,my:1.2,label:'等天黑',keep:1,run:async it=>{await talk([['','你坐在棉被上，聽著這屋子的聲音，直到窗口變暗。']]);res()}});
+  });
+  busy=true;await fadeTo(1,1200);
+}
+
+/* ---- police ---- */
+async function police(){
+  buildFarm();mood('farm');busy=true;mode='follow';raid=null;
+  candle.intensity=0;hemi.intensity=.3;
+  setP(me,3.9,2.6,Math.PI/2);FM.chun.rotation.y=Math.PI*.9;camera.position.set(-.6,10.6,9.4);
+  ambient(.06,.05);beat.vol=.1;
+  await fadeTo(0,1000);
+  await caption('黃昏','',1300);
+  knock(.7,4,.35);
+  await talk([['春花','（她的臉一下子白了。）別出來。無論聽到什麼，別出來。']]);
+  enterHide(STORE_CAM());
+  const po=person({shirt:0x3a4a5a,pants:0x2a3040,hair:0x222222,cap:0x2a3040},-4.8,1.0,Math.PI/2);
+  po.userData.lock=true;
+  await sleep(900);
+  sub('警員：'+LT('開門，例行檢查。','開門',2),2400);await sleep(2800);
+  await walkTo(po,-2.3,1.1,1.3);
+  sub('警員：'+LT('老崔身體怎麼樣？孩子功課還好吧？','老崔、孩子',3),3800);await danger(1,4000);
+  if(S.f.neighbor){sub('警員：'+LT('李嫂說，你家最近有點動靜。','李嫂',3),3800);await danger(2,4000)}
+  sub('警員：'+LT('家裡有沒有……多一個人？','多一個人',2),3600);await danger(2,3800);
+  sub('春花：'+LT('沒有。你知道的，就我們幾個。','沒有',2),3000);await sleep(3200);
+  await walkTo(po,1.6,1.5,1.2);await walkTo(po,2.7,2.5,.9);face(po,4.3,2.5);
+  await danger(2,1600);
+  // the choice
+  const c=await askH('他站在儲藏室的門外。你聽得見他的呼吸。',['留在原地，屏住呼吸','走出去，自己說','從後窗爬出去，跑'],{time:10,def:0});
+  const failed=raid.failed;
+  if(c==0){
+    await danger(2,1800);
+    if(failed||raid.noise>.4){
+      await talk([['','門被慢慢拉開。光從縫裡進來，落在你的鞋尖。'],['警員','（他看著你。很久。）'],['警員',LT('……口音，不是這裡的。','口音',3)],['','他看了你很久，然後輕輕把門帶上。']]);
+      S.sus+=2;hud();S.f.seen=1;
+    }else sub('（他的腳步停了一下，又走開了。）',3000);
+    await sleep(2200);
+    leaveHide();S.r.chun++;S.f.deadline=1;
+    await walkTo(po,-2.2,1.1,1.4);
+    sub('警員：'+LT('我年輕時，也受過人家的好。今天我什麼都沒看見。明天這個時間，我還會再來。','年輕時、明天',4),6000);await sleep(5600);
+    await walkTo(po,-4.9,1.0,1.4);world.remove(po);
+    await talk([['','門關上了。'],['春花','（她靠著牆慢慢滑下去。）他說，今天他什麼都沒看見。'],['春花','……明天這個時間，他還會再來。']]);
+    S.f.path='stay';
+  }else if(c==1){
+    leaveHide();
+    await talk([['','你推開門。手舉在身側，掌心向外。'],['春花','（急）不要——'],['警員','（他看著你很久，沒有伸手。）']]);
+    await talk([['春花','（用中文，聲音在抖）她是我娘家的表妹，來探親的，她……'],['警員',LT('證件呢？','證件',2)]]);
+    await talk([['','沉默很長。他看了看床上的老崔，又看了看站在門口的小哲。'],['警員','（他嘆了一口氣。）']]);
+    await talk([['春花','他說……他得登記。登記你是我表妹，來看病的。這事出了問題，他不認識我們。'],['','春花走到櫃子前，拿出一個信封，放在桌上。他把它收進口袋，沒有看你。']]);
+    await talk([['小哲',LT('（他用你聽不懂的話，對你說了一句很重的話。）','……',9)]]);
+    S.f.reg=1;S.r.zhe--;S.r.chun++;S.f.path='surrender';
+    await walkTo(po,-4.9,1.0,1.4);world.remove(po);
+  }else{
+    leaveHide();
+    await talk([['','你從後面小窗擠出去，摔在冷地上。屋裡傳來春花的聲音：「恩惠！」'],['','那是她第一次叫你的名字，而你已經聽不見了。']]);
+    S.f.path='run';S.r.chun--;
+    world.remove(po);
+  }
+  await fadeTo(1,1400);
+}
+
+/* ---- day 3 ---- */
+async function day3(){
+  buildFarm();mood('farm');busy=true;mode='follow';raid=null;
+  setP(me,3.9,2.6,Math.PI/2);camera.position.set(-.6,10.6,9.4);ambient(.05,.04);beat.vol=0;
+  await fadeTo(0,1200);
+  await caption('第三天','',1500);
+  await talk([['春花','（她眼睛下面有很深的影子。）等一下周先生會來。'],['春花','我不能替你選。……我也不敢替你選。']]);
+  const zh=person({shirt:0x2b2b2b,pants:0x1c1c1e,hair:0x111111},-4.8,1.0,Math.PI/2);
+  await walkTo(zh,-1.6,1.1,1.5);face(zh,me.position.x,me.position.z);busy=true;
+  await talk([['周先生','別緊張。我不是警察。我是來幫你的。'],['周先生','城裡有一份看護的工作，包吃住。一個老太太，需要有人陪。'],['周先生','不要證件也可以。'],['','你停在這一句。']]);
+  if(S.f.phone||S.f.knows||S.lang>=2)await talk([['','你想起那通電話。「身體還行」。']]);
+  await talk([['周先生','我不騙你。我送過很多人。她們都過得比留在這裡好。'],['','他說「她們」的時候，沒有看你，而是看著桌面。']]);
+  let c=await ask('你看著那張擦得很乾淨的桌子。',['問他：有沒有合約？','答應，跟他走','拒絕，說我自己走'],{who:''});
+  if(c==0){await talk([['周先生','（他笑了，很輕。）合約？你要紙做什麼。紙會讓人找到你。']]);c=await ask('他沒有生氣。這比生氣更讓人害怕。',['答應，跟他走','拒絕，說我自己走'],{who:''});c+=1}
+  if(c==1){
+    S.f.end='zhou';
+    await talk([['春花','（她沒有說話。她把你的外套拿過來，幫你穿好。）']]);
+    await talk([['','你走出門。車很乾淨，座椅是軟的。'],['','後視鏡裡，窗口有三個人影。一個站得很直，一個靠在牆邊，一個沒有出來。'],['','你不知道自己上了哪一輛車。']]);
+    world.remove(zh);await fadeTo(1,1800);return;
+  }
+  // leave alone
+  S.f.end='alone';
+  await talk([['周先生','（他沒有生氣。）你會回來的。人都會。'],['','他在桌上留下一張名片。你沒有碰它。']]);
+  await walkTo(zh,-4.8,1.0,1.5);world.remove(zh);
+  busy=false;hint('去和他們道別。',5000);
+  const left=new Promise(res=>{
+    addIt({x:2.55,z:-1.8,my:1.4,label:'老崔',run:async it=>{
+      if(S.r.cui>=1)await talk([['老崔','走吧。……別回頭。'],['','他很輕地對你點了一下頭。這是他這幾年唯一做過的大動作。']]);
+      else await talk([['老崔','（他看著你，什麼都沒說。）']]);
+      it.hide=true}});
+    addIt({x:-4.0,z:0.0,r:1.4,my:1.4,label:'出門',keep:1,run:async it=>{res()}});
+  });
+  await left;busy=true;
+  await fadeTo(1,1200);
+}
+
+/* ---- road ---- */
+function buildRoad(){
+  clearWorld();scene_.name='road';
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(60,80),new THREE.MeshStandardMaterial({map:T_MUD,roughness:1,color:0x6a7a5a}));g.rotation.x=-Math.PI/2;g.position.set(0,0,-8);g.receiveShadow=true;world.add(g);
+  const rd=new THREE.Mesh(new THREE.PlaneGeometry(5,70),new THREE.MeshStandardMaterial({color:0x2b2b2b,roughness:1}));rd.rotation.x=-Math.PI/2;rd.position.set(0,.01,-10);rd.receiveShadow=true;world.add(rd);
+  for(let z=10;z>-30;z-=3)mk(.15,.02,1.2,0xcfcfa0,0,.03,z,{cs:false});
+  mk(5,3,4,0x3a342b,-8,1.5,-4);mk(5.6,.3,4.6,0x1a1816,-8,3.1,-4);
+  mk(.1,3,.1,0x555555,3,1.5,-14);mk(.9,.5,.06,0x1b4a7a,3,2.9,-14);
+  solid(-14,-32,14,-30);solid(-14,12,14,14);solid(-14,-32,-3,14);solid(3,-32,14,14);
+  me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});scene.add(moon);
+}
+async function roadEnd(){
+  buildRoad();mood('road');busy=true;mode='follow';raid=null;
+  setP(me,0,6,Math.PI);camera.position.set(0,7.2,14.6);ambient(.03,.05);beat.vol=0;
+  await fadeTo(0,1600);
+  const chun=S.f.path==='run'?null:person({shirt:0x7a5a4a,pants:0x2a2a30,hair:0x1a1a1a},0,8.2,Math.PI);
+  if(chun){
+    await walkTo(chun,0,7.0,1.2);
+    if(S.r.chun>=2){await talk([['春花','（她把一塊布和用報紙包著的東西塞進你懷裡。）圍巾，還有兩個饅頭。'],['春花',S.f.real?'恩惠。':'……保重。'],['','她只說了這麼多。']])}
+    else await talk([['春花','（她站在那裡，手不知道往哪放。）路口右轉。看見藍色牌子，就是車站。'],['','她只說了這麼多。']]);
+  }
+  if(S.f.path!=='run'&&(S.r.zhe>=1||S.f.peek||S.f.book)&&S.r.zhe>=0){
+    const zhe=person({shirt:0x3a4a6a,pants:0x24262c,hair:0x151515},-3,10,Math.PI);
+    await walkTo(zhe,-.8,7.2,2.6);
+    await talk([['小哲','（他喘著氣，把一張紙塞給你。上面寫著幾個詞，旁邊用你的話注了音。）'],['小哲','別回來。……也別被抓。']]);S.lang++;hud();
+  }
+  if(S.f.path==='run')await talk([['','天亮之前，你一個人沿著路走。身後的屋子沒有再亮燈。']]);
+  await talk([['','路的盡頭有一塊藍色的牌子。你認得那個字：「站」。'+(S.lang>=2||S.f.reg?'':'但你不確定它是不是你以為的那個意思。')]]);
+  await fadeTo(1,1600);
+}
+
+/* ---- ending ---- */
+async function ending3(){
+  const lines=[];
+  const R=S.r;
+  lines.push('<dt>春花</dt><dd>'+(R.chun>=3?'她知道你的名字，也知道你不會再回來。':R.chun>=1?'她替你擔下了一些事，也從你這裡拿走了一些事。':'她從頭到尾沒有真正信過你，你也沒有信她。')+'</dd>');
+  lines.push('<dt>老崔</dt><dd>'+(R.cui>=2?'他用最後一點力氣，替你說了實話。':R.cui>=1?'他對你點過一次頭。':'他看著你，什麼都沒說。')+'</dd>');
+  lines.push('<dt>小哲</dt><dd>'+(R.zhe>=1?'他給了你一張你可能一輩子都不會還的紙。':R.zhe<0?'他比你想的更恨你，也比你想的更害怕。':'他是屋裡唯一一個沒有對你說謊的人。')+'</dd>');
+  lines.push('<dt>你</dt><dd>'+(S.f.end==='zhou'?'你上了那輛車。':S.f.path==='run'?'你一個人跑了。':S.f.path==='surrender'?'你把自己交了出去，換來一個名字。':'你躲過了一次，沒躲過第二次。')+'</dd>');
+  SAVE.c3={r:Object.assign({},S.r),lang:S.lang,sus:S.sus,end:S.f.end||'',path:S.f.path||'',truth:!!S.f.truth,knows:!!S.f.knows,neighbor:!!S.f.neighbor};
+  await panel({k:'第三章　完',title:'沒有人是壞人',body:'<dl>'+lines.join('')+'</dl><p>下一章是最後一夜。你在這裡做過的每一個選擇，都會在黑暗裡回來找你。</p>',btns:[{id:'go',label:'進入第四章　最後一夜'}]});
+}
+
+async function showTitle(){
+  hud();
+  await panel({k:'第三章',title:'藏身',body:'<p>你渡過了河，卻沒有因此安全。</p><p>這一章沒有槍聲。每個對你好的人，都有一個你無法反駁的理由。你要在善意與代價之間，決定自己要成為誰。</p>',
+    btns:[{id:'go',label:'開始'}]});
+  initAudio();ambient(.04,.05);
+}
+  return {async play(){
+    H.reset();H.raidTick=raidTick;setHud(HUD3,'第三章　藏身');
+    S={lang:0,sus:Math.min(2,(SAVE.c1.sus>=4?1:0)+(SAVE.c2.fails>=3?1:0)),r:{chun:0,cui:0,zhe:0},f:{}};
+    $('fade').style.opacity=1;await showTitle();await field();await day1();await night1();await day2();await police();
+    if(S.f.path!=='run'){await day3();if(S.f.end==='alone')await roadEnd()}else await roadEnd();
+    await ending3();
+  }};
+}
+function mkCH4(){
+const FM={};
+// hiding minigame
+function enterHide(cam,danger0=0){
+  raid={active:true,hidden:true,started:true,danger:danger0,breath:100,noise:0,lock:0,failed:false,peek:cam,over:false};
+  mode='peek';me.visible=false;$('slitT').style.display=$('slitB').style.display='block';$('bUI').style.display='flex';$('act').hidden=true;
+  hint('屏息：按住空白鍵（或按鈕）。',5000);busy=true;
+}
+function leaveHide(){
+  mode='follow';me.visible=true;$('slitT').style.display=$('slitB').style.display='none';$('bUI').style.display='none';beat.vol=0;
+  const f=raid?raid.failed:false;raid=null;return f;
+}
+const STORE_CAM=()=>({pos:new THREE.Vector3(4.15,.95,2.5),look:new THREE.Vector3(-1,.9,1.2)});
+async function danger(n,ms){if(raid)raid.danger=n;await sleep(ms);if(raid)raid.danger=0}
+function raidTick(dt){
+  if(!raid||!raid.hidden)return;
+  const want=(holdKey||holdBtn);raid.lock=Math.max(0,raid.lock-dt);
+  const holding=want&&raid.breath>0&&raid.lock<=0;
+  if(holding){raid.breath-=13*dt;if(raid.breath<=0){raid.breath=0;raid.lock=1.6;gaspSnd();raid.noise+=.45}}
+  else raid.breath=Math.min(100,raid.breath+(raid.lock>0?8:28)*dt);
+  const th=raid.danger;
+  if(th>0){if(!holding)raid.noise+=dt*.3*th;else raid.noise-=dt*.05}else raid.noise-=dt*.25;
+  raid.noise=clamp(raid.noise,0,1.2);
+  beat.vol=.12+th*.2;beat.bpm=70+th*22+raid.noise*30;
+  $('bar1').querySelector('i').style.width=raid.breath+'%';$('bar2').querySelector('i').style.width=Math.min(100,raid.noise*100)+'%';
+  if(raid.noise>=1&&!raid.failed){raid.failed=true;raid.noise=.7;gaspSnd();sub('（你發出了聲音。）',1600)}
+}
+const askH=async(q,o,opt)=>{const b=$('bUI').style.display;$('bUI').style.display='none';const c=await ask(q,o,opt);if(raid)$('bUI').style.display=b;return c};
+
+/* ================= chapter 4 : 最後一夜 ================= */
+const TEAMDEF=[
+  ['cai','老蔡',{shirt:0x4a4036,pants:0x25221e,hair:0x2a2a2a,cap:0x3a3328}],
+  ['mei','美蘭',{shirt:0x6a4a5a,pants:0x2a2630,hair:0x1a1a1a}],
+  ['kid','小宇',{shirt:0x4a6a7a,pants:0x2a2a30,hair:0x111111,s:.55}],
+  ['min','在民',{shirt:0x3a3a4a,pants:0x24262c,hair:0x151515,s:.95}],
+  ['piao','朴大哥',{shirt:0x4a5236,pants:0x2a3022,hair:0x333333,s:1.05}]
+];
+const NAMES={cai:'老蔡',mei:'美蘭',kid:'小宇',min:'在民',piao:'朴大哥'};
+let CHF=0,W=null,CPi=0,snap=null,MODE='walk',sneakT=false,runHold=false;
+const CPS=[8,-52,-92,-137];
+function saveCP(i){CPi=Math.max(CPi,i);snap=JSON.stringify({team:S.team,f:S.f})}
+function hud(){
+  const t=S.team||{};$('hT').textContent=['cai','mei','kid','min','piao'].map(k=>t[k]?'●':'○').join('');
+  const n=clamp(S.sus,0,6);$('hE').textContent='●'.repeat(n)+'○'.repeat(6-n);if(W)$('hS').textContent=Math.round(W.stam);
+}
+const angDiff=a=>((a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;
+const RECT=(r,x,z)=>x>=r[0]&&x<=r[2]&&z>=r[1]&&z<=r[3];
+const GRASS=[[-20,-20,-4,-6],[4,-22,20,-8],[-22,-44,-6,-30],[6,-46,22,-32],[-8,-70,8,-56],[-14,-122,-3,-100],[3,-132,14,-112]];
+const GRAVEL=[[-9,-26,9,-20],[-6,-82,6,-76],[-8,-128,8,-120]];
+const COVER=[[-6,-143],[4,-149],[-4,-156],[7,-161],[0,-167]];
+function cornMat(c){const m=new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide});
+  m.onBeforeCompile=sh=>{sh.uniforms.uTime=swayU;
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\ntransformed.x+=sin(uTime*1.7+instanceMatrix[3].x*.9+instanceMatrix[3].z*.7)*.06*position.y;\n#endif')};return m}
+function mood(m){
+  if(m==='ruin'){scene.background=new THREE.Color(0x05070a);scene.fog=new THREE.FogExp2(0x05070a,.02);hemi.color.set(0x4a5a78);hemi.intensity=.55;moon.color.set(0x9fb4d8);moon.intensity=.6;moon.position.set(-4,10,7);moon.target.position.set(0,0,0);
+    sc.left=-9;sc.right=9;sc.top=9;sc.bottom=-9;candle.userData.on=true;candle.userData.base=1.6;candle.distance=11;candle.color.set(0xffc880);candle.position.set(-1,1.6,.4);rain.visible=false}
+  else if(m==='wild'){scene.background=new THREE.Color(0x020305);scene.fog=new THREE.FogExp2(0x030407,.042);hemi.color.set(0x3c4e68);hemi.intensity=.55;moon.color.set(0x7f95b8);moon.intensity=.65;
+    sc.left=-14;sc.right=14;sc.top=14;sc.bottom=-14;candle.userData.on=false;rain.visible=true}
+  moon.target.updateMatrixWorld();
+}
+function person(o,x,z,ry){const p=makePerson(o);setP(p,x,z,ry);return p}
+function mkb(w,h,d,c,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.9,flatShading:true}));m.position.set(x,y,z);m.castShadow=true;return m}
+function gunshot(){nz(.5,1,'bandpass',900,.7);tn(120,.35,.8,'sine',0,40);nz(1.2,.2,'lowpass',400,1,.12)}
+function cough(){nz(.09,.35,'bandpass',900,1.5);nz(.09,.3,'bandpass',1000,1.5,.14)}
+function clickSnd(){tn(1800,.03,.25,'square')}
+
+/* ---- speed / movement ---- */
+function moveMode(l){
+  let m='walk';
+  const mag=Math.hypot(sv.x,sv.y);
+  if(mag>.85)m='run';
+  if(keys.shift||sneakT)m='sneak';else if(keys.r||runHold)m='run';
+  if(m==='run'&&W&&(W.stam<=0||W.tired))m='walk';
+  return m;
+}
+function PS(l){
+  if(!W||scene_.name!=='wild')return 2.5;
+  MODE=moveMode(l);
+  const carry=S.f&&S.f.carry?.86:1;
+  return (MODE==='run'?4.3:MODE==='sneak'?1.15:2.4)*carry;
+}
+function stepIv(){return MODE==='run'?.28:MODE==='sneak'?.8:.45}
+function onStep(){
+  if(scene_.name!=='wild'||!W){stepSnd(.3);return}
+  const g=W.nr/12;stepSnd(.22+g*.3);
+  if(W.sm===2&&!W.freeze)setTimeout(()=>{if(W&&!W.over)stepSnd(.3)},230);
+}
+
+/* ---- level ---- */
+function buildWild(){
+  clearWorld();scene_.name='wild';
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(120,230),new THREE.MeshStandardMaterial({map:T_MUD,roughness:1,color:0x4a5040}));g.rotation.x=-Math.PI/2;g.position.set(0,0,-85);g.receiveShadow=true;world.add(g);
+  GRAVEL.forEach(r=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(r[2]-r[0],r[3]-r[1]),new THREE.MeshStandardMaterial({color:0x5a5a58,roughness:1}));m.rotation.x=-Math.PI/2;m.position.set((r[0]+r[2])/2,.02,(r[1]+r[3])/2);m.receiveShadow=true;world.add(m)});
+  // grass
+  const pts=[];GRASS.forEach(r=>{for(let x=r[0];x<r[2];x+=.8)for(let z=r[1];z<r[3];z+=.8)pts.push([x+rnd(-.3,.3),z+rnd(-.3,.3)])});
+  const sGeo=new THREE.BoxGeometry(.05,1.0,.05);sGeo.translate(0,.5,0);
+  const gs=new THREE.InstancedMesh(sGeo,cornMat(0x3e5030),pts.length);const d=new THREE.Object3D();
+  pts.forEach((p,i)=>{d.position.set(p[0],0,p[1]);d.rotation.set(rnd(-.15,.15),rnd(0,6),rnd(-.15,.15));d.scale.setScalar(rnd(.8,1.3));d.updateMatrix();gs.setMatrixAt(i,d.matrix)});world.add(gs);
+  // trees / rocks
+  for(let i=0;i<70;i++){const x=(Math.random()<.5?-1:1)*rnd(7,26),z=rnd(14,-185);const h=rnd(2.5,5);
+    mk(.28,h,.28,0x1a1612,x,h/2,z);const b=mk(.12,1.4,.12,0x1a1612,x+.4,h*.75,z);b.rotation.z=-.8;solid(x-.3,z-.3,x+.3,z+.3)}
+  for(let i=0;i<30;i++){const x=rnd(-22,22),z=rnd(8,-130);if(GRASS.some(r=>RECT(r,x,z)))continue;const s=rnd(.6,1.2);mk(s*1.3,s*.8,s,0x2c2e2c,x,s*.4,z);solid(x-s*.65,z-s*.5,x+s*.65,z+s*.5)}
+  COVER.forEach(c=>{mk(1.8,1.1,1.4,0x34363a,c[0],.55,c[1]);solid(c[0]-.9,c[1]-.7,c[0]+.9,c[1]+.7)});
+  // small logs for the chase (easy to steer around)
+  [[-6,-106],[6,-115],[-5,-124]].forEach(l=>{mk(5,.7,.6,0x2a2218,l[0],.35,l[1]);solid(l[0]-2.5,l[1]-.35,l[0]+2.5,l[1]+.35)});
+  // chase exit beacon
+  mk(.3,6,.3,0x222220,-2.2,3,-137);mk(.3,6,.3,0x222220,2.2,3,-137);mk(4.7,.3,.3,0x222220,0,6,-137);
+  [[-2.2,6.4],[2.2,6.4],[0,6.6]].forEach(a=>{const b=new THREE.Mesh(new THREE.SphereGeometry(.45,10,10),new THREE.MeshBasicMaterial({color:0xffe0a0,fog:false}));b.position.set(a[0],a[1],-137);world.add(b)});
+  const bl=new THREE.PointLight(0xffd9a0,3.2,44);bl.position.set(0,5.5,-136);scene.add(bl);extras.push(bl);
+  const eb=new THREE.Mesh(new THREE.SphereGeometry(.5,10,10),new THREE.MeshBasicMaterial({color:0xffe8c0,fog:false}));eb.position.set(0,3.4,-186);world.add(eb);
+  // border fence with gap
+  for(let x=-36;x<=36;x+=1.3){if(Math.abs(x)<2.8)continue;mk(.1,2.2,.1,0x2a2926,x,1.1,-172);}
+  mk(33.5,.05,.03,0x777777,-19.75,.7,-172,{cs:false});mk(33.5,.05,.03,0x777777,19.75,.7,-172,{cs:false});mk(33.5,.05,.03,0x777777,-19.75,1.5,-172,{cs:false});mk(33.5,.05,.03,0x777777,19.75,1.5,-172,{cs:false});
+  solid(-38,-172.3,-2.6,-171.7);solid(2.6,-172.3,38,-171.7);
+  solid(-27,-190,-26,16);solid(26,-190,27,16);solid(-27,14,27,16);solid(-27,-190,27,-189);
+  // tower
+  mk(.5,9,.5,0x1c1c1a,-18,4.5,-150);mk(2.2,1.2,2.2,0x222220,-18,9.2,-150);solid(-18.6,-150.6,-17.4,-149.4);
+  const wl=new THREE.PointLight(0xffe0b0,2.2,34);wl.position.set(0,3,-184);scene.add(wl);extras.push(wl);
+  mk(1.2,3,.2,0xffe8c0,0,1.5,-186,{em:0xffe0b0,ei:1,cs:false});
+    me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
+  plight=new THREE.PointLight(0x7a8fb0,1.3,8);scene.add(plight);extras.push(plight);
+  fpl=new THREE.SpotLight(0xfff2d8,6,38,.38,.5,1.2);scene.add(fpl);scene.add(fpl.target);extras.push(fpl,fpl.target);FP.on=true;
+  scene.add(moon);
+}
+let plight=null;
+
+/* ---- guards / flash / stalker ---- */
+function mkGuard(wps,sp){
+  const p=makePerson({shirt:0x4a4f35,pants:0x2f3322,cap:0x3a3d2a,hair:0x111111});p.userData.lock=true;p.userData.aR.rotation.x=-1.3;
+  const f=makeFlash(p);setP(p,wps[0][0],wps[0][1],0);
+  return {p,f,wp:wps,i:1,sp,state:'patrol',t:0,spot:0,ang:0,inv:null,cd:0};
+}
+function guardTick(g,dt){
+  const p=g.p;let tx=0,tz=0,spd=g.sp,moving=true;
+  if(g.state==='patrol'){const w=g.wp[g.i];tx=w[0];tz=w[1]}
+  else if(g.state==='inv'){tx=g.inv.x;tz=g.inv.z;spd=1.9}
+  else{moving=false;g.t-=dt;if(g.t<=0){g.state='patrol';g.cd=4}}
+  g.cd=Math.max(0,g.cd-dt);
+  if(moving){const dx=tx-p.position.x,dz=tz-p.position.z,d=Math.hypot(dx,dz);
+    if(d<.25){if(g.state==='patrol'){g.i=(g.i+1)%g.wp.length;g.state='wait';g.t=1.5}else{g.state='look';g.t=3.2}}
+    else{const s=Math.min(d,spd*dt);p.position.x+=dx/d*s;p.position.z+=dz/d*s;const h=Math.atan2(dx,dz);g.ang+=angDiff(h-g.ang)*Math.min(1,dt*4)}}
+  const sweep=(g.state==='look'||g.state==='wait')?Math.sin(T*1.4)*.8:Math.sin(T*.9)*.18;
+  const a=g.ang+sweep;p.rotation.y=a;animP(p,moving,dt);
+  look(g.f,p.position.x+Math.sin(a)*7,0,p.position.z+Math.cos(a)*7);
+  // detection
+  if(W.freeze||W.hidden||window.__nodet){g.spot=Math.max(0,g.spot-dt);return}
+  const dx=me.position.x-p.position.x,dz=me.position.z-p.position.z,d=Math.hypot(dx,dz);
+  const ad=Math.abs(angDiff(Math.atan2(dx,dz)-a));
+  const inG=GRASS.some(r=>RECT(r,me.position.x,me.position.z));const sn=MODE==='sneak';
+  let range=11;if(inG)range=sn?2.5:5;else if(sn)range=8;
+  const seen=d<range&&ad<.45;
+  const before=g.spot;g.spot=clamp(g.spot+(seen?dt/.9:-dt*.8),0,1);
+  if(seen&&before<.1&&g.spot>=.1){stinger();W.noticed=1}
+  if(g.spot>=1&&!W.over)failIt('手電筒停在你身上。');
+  if(g.state!=='inv'&&g.state!=='look'&&g.cd<=0&&d<W.nr){g.state='inv';g.inv={x:me.position.x,z:me.position.z};sub('（遠處有人朝這邊走過來。）',1800)}
+}
+function makeNoise(x,z,r){if(!W)return;W.guards.forEach(g=>{if(g.state==='patrol'||g.state==='wait'){const d=Math.hypot(g.p.position.x-x,g.p.position.z-z);if(d<r){g.state='inv';g.inv={x,z}}}})}
+function mkStalker(){
+  const s=makePerson({shirt:0x0a0a0c,pants:0x08080a,skin:0x141416,hair:0x050505,s:1.3});
+  s.userData.aL.rotation.x=0;s.userData.lock=true;
+  [-.07,.07].forEach(x=>{const e=mkb(.05,.03,.02,0xcfe8ff,x,1.64,.15);e.material=new THREE.MeshBasicMaterial({color:0xcfe8ff,fog:false});s.add(e)});
+  s.visible=false;return s;
+}
+
+/* ---- tower light ---- */
+function mkTowerLight(){
+  const light=new THREE.SpotLight(0xfff2d0,9,80,.14,.4,1);light.position.set(-18,9,-150);scene.add(light);scene.add(light.target);extras.push(light,light.target);
+  const geo=new THREE.ConeGeometry(1,1,20,1,true);geo.translate(0,-.5,0);geo.rotateX(-Math.PI/2);
+  const cone=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xfff2d0,transparent:true,opacity:.09,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+  scene.add(cone);extras.push(cone);cone.position.copy(light.position);
+  return {light,cone,aim:new THREE.Vector3(0,0,-158),on:true,lock:null};
+}
+function towerTick(dt){
+  const tw=W.tw;W.tt+=dt;const c=W.tt%11;
+  const wasOn=tw.on;tw.on=!(c>8.8);
+  if(wasOn&&!tw.on){clickSnd();sub('喀。',900);if(!W.lure&&(W.lureN||0)<3&&!W.over)startLure()}
+  if(!wasOn&&tw.on)clickSnd();
+  if(W.lure){W.lureT-=dt;if(W.lureT<=0)W.lure=false;else if(W.lureT<5.4&&Math.cos(FP.yaw)>.2&&!W.over&&!W.freeze&&FP.on)lureKill()}
+  let ax,az;
+  if(tw.lock){ax=tw.lock.x;az=tw.lock.z}else if(tw.frantic){ax=me.position.x+Math.sin(W.tt*5)*6;az=me.position.z+Math.cos(W.tt*4)*5}
+  else{ax=-1+13*Math.sin(W.tt*.55);az=-158+14*Math.sin(W.tt*.31+.8)}
+  tw.aim.x+=(ax-tw.aim.x)*Math.min(1,dt*(tw.lock||tw.frantic?5:3));tw.aim.z+=(az-tw.aim.z)*Math.min(1,dt*(tw.lock||tw.frantic?5:3));
+  tw.light.target.position.copy(tw.aim);tw.light.visible=tw.on;tw.cone.visible=tw.on;
+  tw.cone.lookAt(tw.aim);const L=tw.cone.position.distanceTo(tw.aim);tw.cone.scale.set(L*.14,L*.14,L);
+  if(!tw.on||W.freeze||window.__nodet)return;
+  const lit=Math.hypot(me.position.x-tw.aim.x,me.position.z-tw.aim.z)<3.3;
+  const cov=COVER.some(c=>Math.hypot(me.position.x-c[0],me.position.z-c[1])<1.6);
+  if(lit&&!cov){W.tsp+=dt/.75;if(W.tsp>=1&&!W.over)failIt('光找到了你。')}else W.tsp=Math.max(0,W.tsp-dt);
+  S.sus=Math.max(S.sus,Math.round(W.tsp*6));
+}
+
+/* ---- main per-frame tick ---- */
+
+/* ---- air raid / shelling ---- */
+const SH={cd:9,list:[],light:null,seen:0};window.__dbg=()=>({SH,W,BL,DG});
+function killMember(k){const ks=(k==='mei'||k==='kid')?['mei','kid']:[k];ks.forEach(x=>{if(S.team[x])loseMember(x)})}
+function shWhistle(s){
+  if(!ac)return;const dur=Math.min(s.t0,2.3),t=ac.currentTime+(s.t0-dur),o=ac.createOscillator(),g=ac.createGain();
+  o.type='sine';o.frequency.setValueAtTime(2400,t);o.frequency.exponentialRampToValueAtTime(600,t+dur);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+dur*.92);g.gain.linearRampToValueAtTime(0,t+dur+.04);
+  const dx=s.x-me.position.x,dz=s.z-me.position.z,d=Math.hypot(dx,dz)||1;
+  if(ac.createStereoPanner){const pn=ac.createStereoPanner();pn.pan.value=clamp((dx*(-Math.cos(FP.yaw))+dz*Math.sin(FP.yaw))/d,-1,1);o.connect(g);g.connect(pn);pn.connect(master)}else{o.connect(g);g.connect(master)}
+  o.start(t);o.stop(t+dur+.1);nz(dur,.07,'bandpass',3200,1.2,s.t0-dur);
+}
+function spawnShell(pos,delay,fol){
+  const r=fol?3.6:4.0;let x,z;
+  if(pos){x=pos.x;z=pos.z}
+  else{
+    const f=[Math.sin(FP.yaw),Math.cos(FP.yaw)],rt=[-Math.cos(FP.yaw),Math.sin(FP.yaw)],u=Math.random();
+    if(u<.5){const d=rnd(7,13),l=rnd(-3.5,3.5);x=me.position.x+f[0]*d+rt[0]*l;z=me.position.z+f[1]*d+rt[1]*l}
+    else if(u<.78){const a=rnd(0,6.28),d=rnd(3,5.5);x=me.position.x+Math.cos(a)*d;z=me.position.z+Math.sin(a)*d}
+    else if(W.fol.length){const q=W.fol[Math.floor(Math.random()*W.fol.length)];x=q.p.position.x;z=q.p.position.z}
+    else{x=me.position.x+f[0]*9;z=me.position.z+f[1]*9}
+  }
+  x=clamp(x,-26,26);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(r-.18,r,56),new THREE.MeshBasicMaterial({color:0xd04a30,transparent:true,opacity:.5,depthWrite:false,side:THREE.DoubleSide,fog:false}));ring.rotation.x=-Math.PI/2;
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(r,40),new THREE.MeshBasicMaterial({color:0xb03020,transparent:true,opacity:.1,depthWrite:false,side:THREE.DoubleSide,fog:false}));disc.rotation.x=-Math.PI/2;
+  const g=new THREE.Group();g.add(ring,disc);g.position.set(x,.08,z);world.add(g);
+  const sh={x,z,r,t:delay||2.3,t0:delay||2.3,g,ring,disc,fol:fol||null};SH.list.push(sh);shWhistle(sh);
+  if(!SH.seen){SH.seen=1;hint('天上有東西。地上出現紅圈，就離開它。有人倒下，就回去扶他。',8000)}
+  return sh;
+}
+function shRescue(f){
+  f.dazed=false;f.p.rotation.x=0;f.rescue=0;
+  SH.list.filter(s=>s.fol===f).forEach(s=>{s.fired=true;world.remove(s.g)});
+  sub('（'+NAMES[f.k]+'　撐著你的手站了起來。別停。）',3200);
+}
+function explode(s){
+  s.fired=true;world.remove(s.g);
+  const dm=Math.hypot(me.position.x-s.x,me.position.z-s.z);
+  nz(1.8,1,'lowpass',170);tn(52,1.5,1.3,'sine',0,20);nz(.4,.9,'bandpass',900,.8);nz(2.6,.3,'lowpass',520,1,.25);
+  SHK.v=Math.min(1.5,3/(dm/5+1));
+  if(!SH.light||!SH.light.parent){SH.light=new THREE.PointLight(0xffb070,0,70);scene.add(SH.light);extras.push(SH.light)}
+  SH.light.position.set(s.x,3,s.z);SH.light.intensity=14;
+  const bm=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:0xffc890,transparent:true,opacity:.85,fog:false}));bm.position.set(s.x,1,s.z);world.add(bm);
+  const t0=performance.now();(function an(){const k=(performance.now()-t0)/650;if(k>=1||!bm.parent){world.remove(bm);if(SH.light)SH.light.intensity=0;return}
+    bm.scale.setScalar(.5+k*s.r*1.1);bm.material.opacity=.85*(1-k);if(SH.light)SH.light.intensity=14*(1-k)*(1-k);requestAnimationFrame(an)})();
+  if(dm<s.r+7){flashFx();if(ac){const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.frequency.value=3300;g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+3.5);o.connect(g);g.connect(master);o.start(t);o.stop(t+3.6);
+    ambient(0,0);setTimeout(()=>{if(W&&!W.over&&!W.scene)ambient(.05,.04)},3200)}}
+  // teammates
+  let near=null,nd=99;
+  W.fol.slice().forEach(f=>{const d=Math.hypot(f.p.position.x-s.x,f.p.position.z-s.z);
+    if(d<s.r||(s.fol===f&&f.dazed)){killMember(f.k);sub('（爆炸之後，你再也沒有聽到他的聲音。）',3600)}
+    else if(!f.dazed&&d<s.r+4&&d<nd){nd=d;near=f}});
+  if(dm<s.r&&!W.over&&!window.__nodet){failIt(s.fol?'你回頭去救他。已經來不及了。':'炮彈落下的時候，你還站在那裡。');return}
+  if(near&&!s.fol&&Math.random()<.7&&S.team[near.k]){
+    near.dazed=true;near.rescue=0;near.msg=0;near.p.rotation.x=-1.35;
+    sub('（'+NAMES[near.k]+'　倒在地上。還活著。）',3200);
+    const sh=spawnShell({x:near.p.position.x,z:near.p.position.z},10,near);sh.fol=near;
+  }
+}
+function shellTick(dt){
+  for(let i=SH.list.length-1;i>=0;i--){const s=SH.list[i];
+    if(s.fired){SH.list.splice(i,1);continue}
+    s.t-=dt;const k=1-s.t/s.t0,bl=Math.sin(T*(6+k*22))*.5+.5;
+    s.ring.material.opacity=.25+.55*bl*(.4+k);s.disc.material.opacity=.05+.2*k;
+    if(s.t<=0)explode(s)}
+  W.fol.forEach(f=>{if(f.dazed){const d=Math.hypot(me.position.x-f.p.position.x,me.position.z-f.p.position.z);
+    if(d<2.2){f.rescue+=dt;if(f.rescue>.8&&!f.msg){f.msg=1;sub('（扶住他……）',1400)}if(f.rescue>=2.2)shRescue(f)}else f.rescue=Math.max(0,f.rescue-dt)}});
+  const z=me.position.z;
+  const zone=window.__shellforce||(z<-14&&z>-176&&!W.hidden);
+  if(!zone)return;
+  SH.cd-=dt;
+  if(SH.cd<=0){SH.cd=window.__shellforce?3:(W.tw?rnd(7,10):W.sm===3?rnd(5.5,8):rnd(3.4,5.2));spawnShell();if(!W.tw&&Math.random()<.35)setTimeout(()=>{if(W&&!W.over&&!W.freeze&&!W.hidden)spawnShell()},700)}
+}
+
+/* ---- distant gunfire & dogs ---- */
+const BL={cd:8,list:[],seen:0,vx:0,vz:0,still:0,pv:{x:0,z:0}};
+const DG={cd:16,list:[],seen:0};
+function inZone(){return window.__shellforce||(me.position.z<-14&&me.position.z>-134&&W.sm!==4&&!W.tw&&!W.hidden)}
+function pSnd(x,z,dur,vol,type,f,q){
+  if(!ac)return;const dx=x-me.position.x,dz=z-me.position.z,d=Math.hypot(dx,dz)||1;
+  const t=ac.currentTime,s=ac.createBufferSource();s.buffer=noiseBuf;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;
+  const g=ac.createGain(),v=vol*clamp(18/(d+6),.15,1.2);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(fl);fl.connect(g);
+  if(ac.createStereoPanner){const pn=ac.createStereoPanner();pn.pan.value=clamp((dx*(-Math.cos(FP.yaw))+dz*Math.sin(FP.yaw))/d,-1,1);g.connect(pn);pn.connect(master)}else g.connect(master);
+  s.start(t,Math.random());s.stop(t+dur+.05);
+}
+function segDist(px,pz,x0,z0,x1,z1){const vx=x1-x0,vz=z1-z0,l2=vx*vx+vz*vz||1e-6;let t=((px-x0)*vx+(pz-z0)*vz)/l2;t=clamp(t,0,1);return Math.hypot(px-(x0+vx*t),pz-(z0+vz*t))}
+function shoot(gx,gz){
+  const px=me.position.x,pz=me.position.z,d=Math.hypot(px-gx,pz-gz)||1,ft=d/34,still=BL.still>1.0,lead=still?1:.55;
+  let tx=px+BL.vx*ft*lead,tz=pz+BL.vz*ft*lead;
+  const ux=(tx-gx)/d,uz=(tz-gz)/d,sp=still?rnd(-.5,.5):rnd(-2.6,2.6);tx+=-uz*sp;tz+=ux*sp;
+  const dd=Math.hypot(tx-gx,tz-gz)||1,vx=(tx-gx)/dd*34,vz=(tz-gz)/dd*34;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,3.4),new THREE.MeshBasicMaterial({color:0xfff0b0,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+  m.position.set(gx,1.2,gz);m.lookAt(gx+vx,1.2,gz+vz);world.add(m);
+  BL.list.push({m,vx,vz,life:2.8,w:0});
+  pSnd(gx,gz,.09,.55,'bandpass',1800,.8);
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({color:0xffd890,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+  g.position.set(gx,1.2,gz);g.lookAt(camera.position);world.add(g);setTimeout(()=>world.remove(g),70);
+}
+function fireBurst(){
+  const gx=clamp(me.position.x+rnd(-9,9),-22,22),gz=me.position.z-rnd(36,46),n=Math.floor(rnd(5,8));let k=0;
+  if(!BL.seen){BL.seen=1;hint('前方遠處有人在開槍。看到曳光朝你飛來，就左右閃，不要站著不動。',8000)}
+  const iv=setInterval(()=>{if(!W||W.over||k>=n){clearInterval(iv);return}if(W.freeze)return;k++;shoot(gx,gz)},130);
+}
+function fireTick(dt){
+  const mvx=(me.position.x-BL.pv.x)/Math.max(dt,.001),mvz=(me.position.z-BL.pv.z)/Math.max(dt,.001);BL.pv.x=me.position.x;BL.pv.z=me.position.z;
+  BL.vx+=(mvx-BL.vx)*.2;BL.vz+=(mvz-BL.vz)*.2;BL.still=Math.hypot(BL.vx,BL.vz)<.5?BL.still+dt:0;
+  for(let i=BL.list.length-1;i>=0;i--){const b=BL.list[i],x0=b.m.position.x,z0=b.m.position.z,x1=x0+b.vx*dt,z1=z0+b.vz*dt;
+    const hd=segDist(me.position.x,me.position.z,x0,z0,x1,z1);
+    if(!b.w&&hd<2.4){b.w=1;pSnd(me.position.x,me.position.z,.22,.7,'bandpass',2600,2.5);SHK.v=Math.max(SHK.v,.25)}
+    if(hd<.5&&!W.over&&!window.__nodet){failIt('黑暗裡有光一閃，然後你什麼都聽不見了。');return}
+    W.fol.slice().forEach(f=>{if(segDist(f.p.position.x,f.p.position.z,x0,z0,x1,z1)<.5){killMember(f.k);sub('（槍聲之後，你再也沒有聽到他的聲音。）',3600);b.life=0}});
+    b.m.position.set(x1,1.2,z1);b.life-=dt;if(b.life<=0){world.remove(b.m);BL.list.splice(i,1)}}
+  if(!inZone())return;
+  BL.cd-=dt;if(BL.cd<=0){BL.cd=window.__shellforce?3:(W.sm===3?rnd(5.5,8):rnd(3.6,5.5));fireBurst()}
+}
+function mkDog(){
+  const g=new THREE.Group(),mat=new THREE.MeshLambertMaterial({color:0x2a241c});
+  const part=(w,h,d,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);g.add(m);return m};
+  part(.38,.4,.95,0,.62,0);part(.26,.26,.34,0,.78,.62);part(.12,.1,.2,0,.72,.86);
+  [[-.13,.45],[.13,.45],[-.13,-.4],[.13,-.4]].forEach(l=>part(.1,.44,.1,l[0],.22,l[1]));
+  part(.08,.28,.08,0,.78,-.55).rotation.x=.9;
+  const em=new THREE.MeshBasicMaterial({color:0xffc060,fog:false});[-.07,.07].forEach(x=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.09,.07,.04),em);m.position.set(x,.84,.8);g.add(m)});
+  g.scale.setScalar(1.15);return g;
+}
+
+function startLure(){
+  W.lure=true;W.lureT=6.5;W.lureN=(W.lureN||0)+1;
+  setTimeout(()=>{if(W&&!W.over&&W.lure)sub('快回頭，後面有人需要幫助！',3600)},1000);
+  setTimeout(()=>{if(W&&!W.over&&W.lure){sub('母親：恩惠快回頭！',3600);speakKo('은혜야, 어서 돌아봐!',.62)}},2700);
+}
+function lureKill(){
+  W.lure=false;try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+  const fx=Math.sin(FP.yaw),fz=Math.cos(FP.yaw),g=mkDog();g.position.set(me.position.x+fx*3.4,0,me.position.z+fz*3.4);g.rotation.y=Math.atan2(-fx,-fz);world.add(g);
+  DG.list.push({g,st:'lunge',t:.5,n:0,dx:-fx,dz:-fz,bk:0,fatal:1});dogBark(g.position.x,g.position.z);stinger();
+}
+function dogBark(x,z){pSnd(x,z,.16,.9,'bandpass',720,2.5);pSnd(x,z,.2,.5,'lowpass',260,1)}
+function spawnDog(){
+  const a=FP.yaw+rnd(-1.7,1.7),d=rnd(13,17),x=clamp(me.position.x+Math.sin(a)*d,-26,26),z=me.position.z+Math.cos(a)*d;
+  const g=mkDog();g.position.set(x,0,z);world.add(g);DG.list.push({g,st:'charge',t:0,n:0,dx:0,dz:0,bk:0});
+  dogBark(x,z);sub('（有東西從草裡衝出來。）',2200);
+  if(!DG.seen){DG.seen=1;hint('狗！牠比你快。牠撲過來的時候，往旁邊閃。',7000)}
+}
+function dogTick(dt){
+  for(let i=DG.list.length-1;i>=0;i--){const o=DG.list[i],g=o.g,dx=me.position.x-g.position.x,dz=me.position.z-g.position.z,d=Math.hypot(dx,dz)||1;
+    const face=(x,z)=>{g.rotation.y=Math.atan2(x,z)};
+    if(o.st==='charge'){const sp=6.6;g.position.x+=dx/d*sp*dt;g.position.z+=dz/d*sp*dt;face(dx,dz);g.position.y=Math.abs(Math.sin(T*16))*.12;
+      o.bk-=dt;if(o.bk<=0){o.bk=.55;dogBark(g.position.x,g.position.z)}
+      if(d<4.2){o.st='wind';o.t=.55;g.scale.y=.85;pSnd(g.position.x,g.position.z,.5,.6,'lowpass',200,1)}}
+    else if(o.st==='wind'){o.t-=dt;face(dx,dz);g.position.y=0;if(o.t<=0){const l=Math.hypot(dx,dz)||1;o.dx=dx/l;o.dz=dz/l;o.st='lunge';o.t=.5;g.scale.y=1.15;dogBark(g.position.x,g.position.z)}}
+    else if(o.st==='lunge'){g.position.x+=o.dx*(o.fatal?14:11)*dt;g.position.z+=o.dz*(o.fatal?14:11)*dt;face(o.dx,o.dz);g.position.y=Math.sin((1-o.t/.5)*Math.PI)*.45;o.t-=dt;
+      if(d<.95&&!W.over&&!window.__nodet){failIt(o.fatal?'你回頭了。有東西從黑暗裡撲了出來。她說過：不管發生什麼事，都不要回頭。':'狗從草裡撲出來，把你壓在地上。');return}
+      if(o.t<=0){o.st='rec';o.t=.9;o.n++;g.position.y=0}}
+    else if(o.st==='rec'){o.t-=dt;if(o.t<=0){o.st=o.n>=3?'flee':(d<4.2?'wind':'charge');if(o.st==='wind'){o.t=.55;g.scale.y=.85}o.t=o.st==='flee'?3:o.t}}
+    else{const sp=8;g.position.x-=dx/d*sp*dt;g.position.z-=dz/d*sp*dt;face(-dx,-dz);o.t-=dt;if(o.t<=0){world.remove(g);DG.list.splice(i,1)}}
+  }
+  if(!inZone()||W.sm===3||DG.list.length)return;
+  DG.cd-=dt;if(DG.cd<=0){DG.cd=window.__shellforce?5:rnd(16,24);spawnDog()}
+}
+function tick4(dt,mv){
+  if(!W||scene_.name!=='wild'||W.over)return;
+  swayU.value=T;
+  if(plight){plight.position.set(me.position.x,2.4,me.position.z)}
+  const gl=$('knockUI');if(W.freeze){gl.style.display='none';hud();return}
+  // stamina
+  if(MODE==='run'&&mv){W.stam=Math.max(0,W.stam-14*dt);if(W.stam<=0)W.tired=true}else W.stam=Math.min(100,W.stam+18*dt);
+  if(W.tired&&W.stam>25)W.tired=false;
+  // noise radius
+  const m=MODE;let nr=!mv?1:m==='run'?12:m==='sneak'?2.2:6;
+  if(mv){if(GRAVEL.some(r=>RECT(r,me.position.x,me.position.z)))nr*=1.7;if(GRASS.some(r=>RECT(r,me.position.x,me.position.z)))nr*=.6}
+  W.nr=nr;
+  // history
+  W.hacc+=dt;if(W.hacc>=.1){W.hacc=0;W.hist.push({x:me.position.x,z:me.position.z});if(W.hist.length>700)W.hist.shift()}
+  W.fol.forEach((f,i)=>{if(f.dazed){animP(f.p,false,dt);return}const idx=Math.max(0,W.hist.length-1-(i+1)*8);const h=W.hist[idx];const dx=h.x-f.p.position.x,dz=h.z-f.p.position.z;
+    const mov=Math.hypot(dx,dz)>.03;f.p.position.x=h.x;f.p.position.z=h.z;if(mov){f.p.rotation.y=Math.atan2(dx,dz)}animP(f.p,mov,dt)});
+  // guards
+  let maxSpot=0;W.guards.forEach(g=>{guardTick(g,dt);maxSpot=Math.max(maxSpot,g.spot)});
+  S.sus=Math.round(maxSpot*6);
+  // stalker
+  const st=W.st;
+  if(W.sm===2){
+    if(!mv)W.D-=dt*.9;else W.D=Math.min(18,W.D+dt*.4);
+    st.visible=W.D<16;st.position.set(me.position.x+Math.sin(T*.3)*1.5,0,me.position.z+W.D);st.rotation.y=Math.PI;animP(st,false,dt);
+    if(W.D<4.2){stinger();flashFx();nz(.8,.3,'lowpass',300);W.D=14;sub('（有什麼東西，剛剛就在你後面。）',2600);beat.vol=.4}
+  }else if(W.sm===3){
+    const dx=me.position.x-st.position.x,dz=me.position.z-st.position.z,d=Math.hypot(dx,dz);
+    const sp=W.sSpeed||2.9;if(d>.01){st.position.x+=dx/d*sp*dt;st.position.z+=dz/d*sp*dt}st.rotation.y=Math.atan2(dx,dz);st.visible=true;animP(st,true,dt);
+    W.stStep-=dt;if(W.stStep<=0){stepSnd(Math.min(.5,3/(d+1)));W.stStep=.3}
+    beat.vol=clamp(.6-d*.03,.15,.6);beat.bpm=90+Math.max(0,40-d*3);
+    S.sus=Math.max(S.sus,Math.round(clamp(1-d/12,0,1)*6));
+    if(d<1.1&&!W.over)failIt('你回頭的時候，它已經在那裡。');
+    if(me.position.z<-136)endChase();
+  }else if(W.sm===4){
+    const cov=COVER.some(c=>Math.hypot(me.position.x-c[0],me.position.z-c[1])<1.6);
+    if(cov&&!mv)W.coverT+=dt;else W.coverT=Math.max(0,W.coverT-dt*2);
+    if(W.coverT>2.5&&!W.warned){W.warned=1;gaspSnd();sub('（你背後有人在呼吸。）',2400)}
+    if(W.coverT<1)W.warned=0;
+    if(W.coverT>5.5&&!W.over)failIt('它就在你身後。你一直都知道。');
+    beat.vol=.2+clamp(W.coverT/6,0,1)*.4;
+  }
+  if(W.tw)towerTick(dt);
+  shellTick(dt);fireTick(dt);dogTick(dt);
+  // triggers
+  const z=me.position.z;
+  if(!W.ev.silence&&z<-60&&CPi<2){W.ev.silence=1;ambient(0,0);beat.vol=0;setTimeout(()=>{clickSnd();stinger();ambient(.05,.04)},3200)}
+  if(!W.ev.ditch&&z<-46&&CPi<1){W.ev.ditch=1;runScene(sceneDitch)}
+  if(!W.ev.piao&&z<-72&&CPi<2&&S.team.piao){W.ev.piao=1;runScene(scenePiao)}
+  if(!W.ev.voice&&z<-84&&CPi<2){W.ev.voice=1;runScene(sceneVoice)}
+  if(W.tw&&!W.ev.cai&&z<-158&&S.team.cai){W.ev.cai=1;runScene(sceneCai)}
+  if(!W.tw&&z<-139&&W.sm!==3&&CPi>=3&&!W.ev.final){W.ev.final=1;runScene(sceneFinalIntro)}
+  if(z<-176&&!W.over&&W.ev.final)arrive();
+  if(W.sm===3){gl.style.display='block';gl.style.color='#e0a94a';gl.textContent='出口 ▲ '+Math.max(0,Math.round(me.position.z+136))+' 公尺'}
+  else if(W.sm===4){gl.style.display='block';gl.style.color='#e0a94a';gl.textContent='出口 ▲ '+Math.max(0,Math.round(me.position.z+176))+' 公尺'}
+  else gl.style.display='none';
+  hud();
+}
+async function runScene(fn){if(W.scene)return;W.scene=true;W.freeze=true;busy=true;try{await fn()}finally{if(W&&!W.over){W.scene=false;W.freeze=false;busy=false}}}
+function lostMsg(k){sub('—　'+NAMES[k]+'　不見了　—',4200);stinger();const e=$('hT');e.style.color='#c4412f';setTimeout(()=>{e.style.color=''},2500)}
+function loseMember(k,how){
+  lostMsg(k);S.team[k]=0;const i=W.fol.findIndex(f=>f.k===k);if(i>=0){const f=W.fol.splice(i,1)[0];if(how==='sit'){const p=f.p;p.userData.lock=false}else world.remove(f.p)}hud();
+}
+async function failIt(msg){
+  if(!W||W.over)return;if(W.sm===3)CHF++;W.over=true;busy=true;beat.vol=0;
+  if(/手電|光/.test(msg)){gunshot()}else{stinger();gaspSnd()}
+  flashFx();await sleep(700);await fadeTo(1,800);
+  $('mb').style.display='none';
+  await panel({k:'失敗',title:'到此為止',body:'<p>'+msg+'</p><p class="small">畫面沒有繼續。你不會知道之後的事。</p>',btns:[{id:'retry',label:'從這裡重來'}]});
+  if(W.res)W.res('fail');
+}
+function arrive(){if(W.over)return;W.over=true;busy=true;W.res('done')}
+
+/* ---- scenes inside the wild ---- */
+function placeTeamAround(){W.fol.forEach((f,i)=>{f.p.position.set(me.position.x+(i%2?1.1:-1.1)*(1+Math.floor(i/2)*.5),0,me.position.z+.6+Math.floor(i/2)*.9)})}
+async function sceneDitch(){
+  await talk([['老蔡','（很低）趴下。全部趴下。'],['','溝很淺，剛好蓋得住你們。泥是冰的。']]);
+  placeTeamAround();
+  const cx=me.position.x,cz=me.position.z;
+  enterHide({pos:new THREE.Vector3(cx+.3,.5,cz+.9),look:new THREE.Vector3(cx-4,.7,cz-9)});
+  const g=mkGuard([[cx-16,cz-6],[cx+16,cz-6]],1);g.ang=Math.PI/2;W.tmpGuard=g;
+  await sleep(900);
+  walkTo(g.p,cx-4,cz-6,1.0);
+  const gl=setInterval(()=>{if(!W||!g.p.parent)return clearInterval(gl);look(g.f,g.p.position.x+Math.sin(g.p.rotation.y)*6,0,g.p.position.z+Math.cos(g.p.rotation.y)*6)},60);
+  await sleep(3600);
+  await danger(1,1800);
+  cough();sub('（小宇咳了一聲。很輕。）',2500);
+  look(g.f,cx,0,cz-1);g.p.rotation.y=Math.atan2(cx-g.p.position.x,cz-g.p.position.z);
+  await danger(2,2200);
+  sub('巡邏的人：……什麼聲音？',2400);
+  const c=await askH('他的手電筒停在溝邊。小宇又要咳了。',['按住美蘭的手，讓她捂住孩子','伸手捂住小宇的嘴','朝遠處丟一塊石頭'],{time:5,def:0});
+  clearInterval(gl);
+  if(c==0){
+    await talk([['','你抓住美蘭的手。她的指節是白的。她用另一隻手，把小宇的臉按進自己的衣服裡。']]);
+    if(!raid.failed){await talk([['','咳聲被衣服吞掉了。光停了很久，才移開。']])}
+    else{
+      cough();
+      await talk([['','咳聲漏出來了。光掃下來。老蔡站起來，朝另一個方向走。'],['老蔡','（他沒有回頭。）別等我。']]);
+      gunshot();sub('（遠處一聲槍響。）',3000);loseMember('cai');
+    }
+  }else if(c==1){
+    await talk([['','你的手比你的腦子快。你伸出手，蓋住了小宇的嘴。'],['','他在你的手掌裡掙扎。很小，很軟。很久。'],['','光移開了。你放開手。他吸了一大口氣，哭不出聲。'],['','美蘭沒有看你。從這一刻起，她沒有再看過你。']]);S.f.meiCold=1;
+  }else{
+    await talk([['','你摸到一塊石頭，用盡力氣丟向遠處的樹叢。'],['','「啪。」'],['巡邏的人','……那邊！']]);S.f.alert=1;
+  }
+  walkTo(g.p,cx-18,cz-14,2.2);await sleep(2600);world.remove(g.p);g.f.on=false;
+  leaveHide();
+  W.hidden=false;
+  saveCP(1);W.sm=2;W.D=16;hint('它在後面。你停下來的時候，它會靠近。',6000);
+  await talk([['','你們從溝裡爬出來。沒有人說話。']]);
+}
+async function scenePiao(){
+  await talk([['','朴大哥突然停下。他的左腿彎了一下，手撐在地上。'],['朴大哥','（很低）……走不了了。'],['朴大哥','把我留下。你們走。']]);
+  const c=await ask('他看著你，等你說不。',['「我背你。」','什麼都不說','「好。」'],{time:8,def:1});
+  if(c==0){S.f.carry=1;await talk([['朴大哥','（他笑了一下，沒有再推辭。）你這小子。'],['','他比看起來重。你的腳陷進泥裡。']])}
+  else{
+    await talk([c==1?['','你沒有說話。這比說「好」更殘忍，你知道。']:['朴大哥','（他點頭。）……替我跟她說，我過去了。'],c==1?['朴大哥','……我就知道。']:['','你不知道「她」是誰。']]);
+    const f=W.fol.find(f=>f.k==='piao');if(f){const sx=me.position.x-1.5,sz=me.position.z+3;f.p.position.set(sx,0,sz);f.p.rotation.y=0}
+    const i=W.fol.findIndex(f=>f.k==='piao');if(i>=0){const f=W.fol.splice(i,1)[0];W.gone.push(f.p)}S.team.piao=0;lostMsg('piao');hud();
+    await talk([['','他坐在路邊，沒有抬頭。你沒有回頭看第二次。']]);
+  }
+}
+async function sceneVoice(){
+  ambient(0,0);beat.vol=.05;
+  await talk([['','所有聲音都停了。風、蟲、腳步聲。']]);
+  await sleep(1400);
+  speakKo('은혜야…');sub('母親：恩惠……',3200);nz(.3,.08,'lowpass',200);await sleep(3400);
+  speakKo('은혜야, 이리 오렴.');sub('母親：恩惠，你過來。',3200);await sleep(3400);
+  const c=await ask('聲音從左邊的霧裡傳來。和她生病時一樣輕。',['「媽？」','摀住耳朵，繼續走','小聲對大家說：「不要回頭。」'],{time:7,def:1});
+  if(c==0){
+    S.f.answered=1;
+    if(S.team.min){await talk([['在民','（他的臉變得很奇怪。）……媽？'],['','他往霧裡走了一步，又走了一步。你伸手，只抓到他袖口的一點溫度。']]);loseMember('min');}
+    else await talk([['','霧裡沒有回答。只有一個很輕的、像在笑的氣聲。']]);
+  }else if(c==1){await talk([['','你摀住耳朵。聲音還是進來了。不是從外面。']])}
+  else{S.f.warned=1;await talk([[S.team.cai?'老蔡':'美蘭','（很輕）對。誰回頭，誰就留下。']])}
+  ambient(.05,.04);
+  {const st=W.st;st.visible=true;st.position.set(me.position.x-1,0,me.position.z+3.2);st.rotation.y=Math.atan2(me.position.x-st.position.x,me.position.z-st.position.z);
+   await talk([['','你轉過頭。']]);await turnTo(st.position.x,st.position.z,900);}
+  await talk([['','它站在三步外，在霧裡，面對你。'],['','它沒有臉，沒有聲音。只有兩點很淡的、不在任何高度的光。']]);
+  await turnTo(me.position.x,me.position.z-20,600);
+  stinger();flashFx();
+  saveCP(2);startChase();
+}
+function startChase(){
+  W.sSpeed=Math.max(2.3,3.1-.25*CHF);W.sm=3;W.st.position.set(me.position.x-5,0,me.position.z+7);W.st.visible=true;W.stStep=0;
+  hint(coarse?'向前跑，朝亮光！搖桿推到底奔跑':'往前（螢幕上方）跑向亮光！按住 R 奔跑，體力用完會變慢，記得放開 R 喘口氣。',9000);
+}
+function endChase(){
+  if(W.sm!==3)return;W.sm=0;W.st.visible=false;beat.vol=.1;beat.bpm=70;
+  saveCP(3);
+  runScene(async()=>{
+    await talk([['','你跑過一道倒塌的圍牆。身後的腳步聲忽然停了。'],['','你轉過頭。']]);
+    W.st.visible=true;await turnTo(W.st.position.x,W.st.position.z,900);
+    await talk([['','它站在線外，站得很直，像有什麼東西它不能越過。'],['','然後霧把它吞了。']]);W.st.visible=false;
+    await turnTo(me.position.x,me.position.z-20,700);
+    W.ev.final=0;
+  });
+}
+async function sceneFinalIntro(){
+  const names=['cai','mei','kid','min','piao'].filter(k=>S.team[k]).map(k=>NAMES[k]);
+  await talk([['','前面是最後一段。一道鐵絲網，一座塔，一道會轉動的光。'],['',names.length?'還在你身邊的是：'+names.join('、')+'。':'你身邊沒有人了。']]);
+  if(S.team.cai)await talk([['老蔡','（他蹲下來，用手指在泥上畫了三顆石頭。）'],['老蔡','聽到「喀」的一聲，燈會暗兩秒。從一顆石頭衝到下一顆。'],['老蔡','不要在石頭旁邊停太久。後面的東西，不喜歡你停下來。']]);
+  else await talk([['','你想起老蔡說過的話。「喀」的一聲，燈會暗兩秒。']]);
+  await talk([[S.team.cai?'老蔡':'','不管後面是誰在叫你，都不要回頭。'.replace(/^/,S.team.cai?'':'你想起母親的話：')]]);
+  W.tw=mkTowerLight();W.tt=0;W.tsp=0;W.sm=4;W.coverT=0;
+  hint('躲在石頭後面。聽到「喀」，就衝到下一顆。不要停太久。',8000);
+}
+async function sceneCai(){
+  await talk([['老蔡','（他停在最後一顆石頭旁邊。）我以前站在那座塔上。'],['老蔡','我數過四十七個人。有一些是我放過去的。有一些不是。'],['老蔡','這是第四十八個。']]);
+  W.tw.lock={x:me.position.x+18,z:me.position.z+4};
+  const fol=W.fol.find(f=>f.k==='cai');
+  if(fol){walkTo(fol.p,me.position.x+14,me.position.z+4,3.2)}
+  await sleep(500);
+  const c=await ask('他跑向光裡。你只有三秒。',['「老蔡！」喊他回來','沉默，繼續走','回頭，看他最後一眼'],{time:3,def:1});
+  if(c==0){S.f.calledBack=1;W.tw.lock=null;W.tw.frantic=true;gunshot();sub('光朝這邊掃過來了。',2600);
+    setTimeout(()=>{if(W)W.tw.frantic=false},9000);
+    await talk([['老蔡','（很遠）……傻孩子。']]);
+  }else{
+    if(c==2){if(fol)await turnTo(fol.p.position.x,fol.p.position.z,700);await talk([['','他回頭，對你舉了一下手。像是在說：走。']]);await turnTo(me.position.x,me.position.z-20,600)}
+    gunshot();sub('（遠處傳來一聲槍響。）',3000);
+    loseMember('cai');S.f.caiGone=1;
+    setTimeout(()=>{if(W&&W.tw)W.tw.lock=null},9000);
+  }
+}
+
+/* ---- wild stage ---- */
+async function wild(cp){
+  buildWild();mood('wild');busy=true;mode='follow';raid=null;SH.list=[];SH.cd=6;BL.list=[];BL.cd=8;BL.still=0;DG.list=[];DG.cd=16;
+  $('mb').style.display=coarse?'flex':'none';
+  if(cp>0&&snap){const o=JSON.parse(snap);S.team=o.team;S.f=o.f}
+  W={res:null,over:false,freeze:true,scene:false,hidden:false,stam:100,tired:false,nr:1,hist:[],hacc:0,fol:[],guards:[],gone:[],ev:{},sm:0,D:18,st:null,stStep:0,tw:null,tt:0,tsp:0,coverT:0,warned:0};
+  W.outcome=new Promise(r=>W.res=r);
+  const z0=CPS[cp];setP(me,0,z0,Math.PI);me.rotation.y=Math.PI;FP.yaw=Math.PI;FP.pitch=0;
+  for(let k=0;k<80;k++)W.hist.push({x:0,z:z0+(80-k)*.32});
+  TEAMDEF.forEach((d,i)=>{if(S.team[d[0]]){const p=makePerson(d[2]);world.add(p);W.fol.push({k:d[0],p})}});
+  W.st=mkStalker();world.add(W.st);
+  W.sm=cp>=1&&cp<3?2:0;
+  if(cp===1)W.ev={ditch:1};if(cp===2)W.ev={ditch:1,piao:1,voice:1};if(cp===3){W.ev={ditch:1,piao:1,voice:1};}
+  camera.position.set(0,7.2,z0+14.6);camera.lookAt(0,.9,z0-2);
+  ambient(.04,.05);beat.vol=.1;beat.bpm=66;
+  await fadeTo(0,1200);
+  if(cp===0){await caption('第四章　最後一夜','',2400);hint(coarse?'左下搖桿移動，滑動右邊螢幕轉視角。搖桿推到底就是跑（最吵，會耗體力），輕推是走。':'WASD 移動，按住滑鼠拖曳轉視角。按住 Shift 蹲伏（最安靜），按住 R 奔跑（最吵）。遠處有人開槍時，左右閃。',9000)}
+  W.freeze=false;busy=false;
+  if(cp===2)startChase();
+  if(cp===3){W.ev.final=0;W.freeze=false;runScene(sceneFinalIntro);W.ev.final=1}
+  return await W.outcome;
+}
+
+/* ---- ruin (gathering) ---- */
+function buildRuin(){
+  clearWorld();scene_.name='farm';
+  const fl_=new THREE.Mesh(new THREE.PlaneGeometry(10.4,7.4),new THREE.MeshStandardMaterial({map:T_WOOD,roughness:.9,color:0x6a6a6a}));fl_.rotation.x=-Math.PI/2;fl_.receiveShadow=true;world.add(fl_);
+  const wl={map:T_WALL,r:1};
+  mk(10.4,3,.2,0x2c2c28,0,1.5,-3.6,wl);mk(.2,2.6,7.4,0x2c2c28,-5.1,1.3,0,wl);mk(.2,1.6,3.0,0x2c2c28,5.1,.8,-1.6,wl);mk(.2,2.6,2.0,0x2c2c28,5.1,1.3,2.5,wl);
+  solid(-5.4,-3.9,5.4,-3.4);solid(-5.4,-3.9,-4.9,3.9);solid(4.9,-3.9,5.4,.0);solid(4.9,1.5,5.4,3.9);solid(-5.4,3.45,5.4,3.9);
+  for(let i=0;i<9;i++){const s=rnd(.3,.7);mk(s*1.4,s*.7,s,0x3a3834,rnd(-4.5,4.5),s*.35,rnd(-3,3.2))}
+  mk(1.3,1.1,.05,0x6a8ab0,-2.2,1.9,-3.47,{em:0x6a8ab0,ei:.35,cs:false});
+  mk(1.4,.12,.9,0x3a2a1c,-2.5,.5,-2.4);mk(.7,.7,.7,0x4a3a28,3.5,.35,-2.8);solid(-3.2,-2.9,-1.8,-1.9);solid(3.1,-3.2,3.9,-2.4);
+  const fx=mk(.18,.3,.18,0xffc880,-2.5,.8,-2.4,{em:0xffb050,ei:1,cs:false});
+  me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
+  FM.cai=person(TEAMDEF[0][2],-3.3,-.6,Math.PI*.2);FM.mei=person(TEAMDEF[1][2],2.6,-.9,Math.PI*1.2);FM.kid=person(TEAMDEF[2][2],2.1,-.5,Math.PI*1.2);
+  FM.piao=person(TEAMDEF[4][2],-.4,-2.4,Math.PI*.1);FM.min=person(TEAMDEF[3][2],3.9,1.6,Math.PI*1.1);
+  scene.add(moon);
+}
+async function ruin(){
+  buildRuin();mood('ruin');busy=true;mode='follow';raid=null;W=null;$('mb').style.display='none';
+  setP(me,0,2.4,Math.PI);camera.position.set(0,10.6,9.4);ambient(.05,.04);beat.vol=0;hud();
+  await fadeTo(0,1400);
+  await caption('第四章','最後一夜',3000);
+  await talk([['','一間被放棄的屋子。屋頂缺了一半，月光一塊一塊落在地上。'],['','你們有五個人。你被編為「第一個」。']]);
+  busy=false;hint('和每個人說說話。他們每一個，之後都可能因為你的選擇而不見。',9000);
+  const need={cai:0};
+  await new Promise(res=>{
+    addIt({x:-2.6,z:-.3,my:2.3,label:'老蔡',run:async it=>{
+      if(need.cai){await talk([['老蔡','（他沒有轉頭。）想好了就走。']]);return}
+      await talk([['老蔡','（他一直看著窗外。）規矩只有三條。'],['老蔡','一，我不叫停，你不准停。二，我不說話，你不准說話。'],['老蔡','三，聽到「喀」的一聲，燈會暗兩秒。那兩秒是你們的。'],['老蔡','我以前站在那座塔上。我知道他們什麼時候換班。']]);
+      const c=await ask('你想問什麼？',['「你為什麼幫我們？」','「如果出事，誰管我們？」','什麼都不問']);
+      if(c==0)await talk([['老蔡','（他停了很久。）……有一些人，是我放過去的。有一些人，我沒有。'],['老蔡','數字我記得很清楚。']]);
+      else if(c==1)await talk([['老蔡','沒有人管。所以你要管別人。']]);
+      else await talk([['老蔡','（他點了一下頭，像是滿意。）']]);
+      need.cai=1}});
+    addIt({x:2.2,z:-.2,my:1.9,label:'美蘭',run:async it=>{
+      if(S.f.bag){await talk([['美蘭','（她輕輕拍著孩子的背。）謝謝你。']]);return}
+      await talk([['美蘭','（她抱著孩子。小宇睡著，臉貼在她肩膀上。）'],['美蘭','他昨天開始咳。我給他吃了藥……不知道夠不夠。']]);
+      const c=await ask('她把一個小布包遞過來。',['接過來，背在身上','說：我怕跑不動','搖頭']);
+      if(c==0){S.f.bag=1;await talk([['美蘭','（她第一次笑了。）謝謝。']])}
+      else if(c==1)await talk([['美蘭','我也是。……我們一起怕。']]);
+      else await talk([['美蘭','（她把布包收回去，緊緊抱著。）']])}});
+    addIt({x:-.4,z:-1.6,my:2.1,label:'朴大哥',run:async it=>{
+      await talk([['朴大哥','（他在揉自己的左腿。）老毛病。'],['朴大哥','我當了二十年兵，最後要靠別人帶我走。']]);
+      const c=await ask('他笑得很勉強。',['「你可以的。」','「撐不住就說。」','沉默']);
+      if(c==1){S.f.told=1;await talk([['朴大哥','……你小子。']])}
+      else if(c==0)await talk([['朴大哥','（他沒回答。）']])}});
+    addIt({x:3.2,z:1.1,my:1.9,label:'在民',run:async it=>{
+      await talk([['在民','（他很快移開視線。他的包很鼓。）'],['在民','……你們都有人在等吧。']]);
+      const c=await ask('他在等你回答。',['「你有嗎？」','「有。」','不回答']);
+      if(c==0)await talk([['在民','（他笑了一下，很淡。）有一個。他沒到。']]);
+      else if(c==1)await talk([['在民','真好。']])}});
+    addIt({x:4.4,z:.8,my:1.6,label:'出發',keep:1,run:async it=>{
+      if(!need.cai){await talk([['','你還沒聽老蔡說完規矩。']]);busy=false;return}
+      speakKo('첫 번째.');sub('廣播：第一個。',3200);stinger();flashFx();
+      await talk([['老蔡','……他們在叫你的編號。走。']]);res()}});
+  });
+  busy=true;await fadeTo(1,1200);
+}
+
+/* ---- ending ---- */
+function buildRadioRoom(){
+  clearWorld();scene_.name='end';me=null;rain.visible=false;candle.userData.on=false;
+  scene.background=new THREE.Color(0x020203);scene.fog=new THREE.FogExp2(0x020203,.05);hemi.intensity=.12;moon.intensity=.05;
+  mk(3,.1,1.6,0x2a2218,0,.5,0);mk(.9,.5,.4,0x2a2a26,0,.8,0);mk(.5,.3,.02,0x14130f,-.12,.8,.21,{cs:false});
+  mk(.14,.14,.02,0xffc070,.25,.82,.21,{em:0xffb050,ei:1.2,cs:false});
+  mk(.4,.2,.4,0xd8d0c0,-1,.65,.2);
+  const l=new THREE.PointLight(0xffb050,1.6,6);l.position.set(.25,1.1,.8);scene.add(l);extras.push(l);
+  camera.position.set(0,1.5,2.8);camera.lookAt(0,.7,0);camera.fov=46;camera.updateProjectionMatrix();
+}
+async function bcastEnding(){
+  buildRadioRoom();mode='follow';busy=true;W=null;ambient(.02,.03);beat.vol=0;
+  await fadeTo(0,1800);
+  await talk([['','有人遞給你一杯熱水，和一台舊收音機。「聽聽看，」他說，「也許有家裡的消息。」'],['','你轉動旋鈕。雜訊裡，慢慢出現一個你很熟悉的聲音。']]);
+  const L=[['중앙방송입니다. 조국을 배반한 이은혜의 가족에 대한 조치를 알려 드립니다.','中央廣播。現在宣布，對叛國者李恩惠一家的處置。'],
+    ['그 어머니는 끝까지 입을 열지 않았습니다. 그러나 우리에게는 입을 열게 하는 방법이 많습니다.','她的母親，到最後都不肯開口。不過，我們有很多方法，讓人開口。'],
+    ['이은혜, 듣고 있다면 돌아오십시오. 그러면 어머니에 대한 조치를 멈추겠습니다.','李恩惠，如果你聽得見，回來。你回來，我們就停止對你母親的「措施」。'],
+    ['모든 인민은 이것을 거울로 삼아야 합니다.','全體人民，應以此為鑑。']];
+  for(const l of L){nz(.4,.14,'bandpass',2600,.6);sub('廣播：'+l[1],40000);await Promise.all([speakKo(l[0],.62),sleep(2400)]);await sleep(1000)}
+  $('subt').style.opacity=0;await sleep(1200);
+  const c=await ask('收音機裡的聲音停了。它在等你回答。',['關掉收音機','聽到最後']);
+  if(c==0)await talk([['','你關掉了它。但那句話沒有跟著關。']]);
+  else{nz(1.5,.1,'bandpass',2600,.6);await talk([['','雜訊很長。沒有人說話。他們沒有說謊，這是最可怕的地方。']])}
+  await talk([['','你握著那杯已經涼掉的水。你終於明白，母親那句「你得走了」，是她替你選的。'],['','你不是逃出來的。你是被她送出來的。']]);
+  await fadeTo(1,1800);
+}
+async function ending4(){
+  await bcastEnding();
+  SAVE.c4={team:Object.assign({},S.team),f:Object.assign({},S.f)};
+  const arrived=['cai','mei','kid','min','piao'].filter(k=>S.team[k]);
+  const list=arrived.map(k=>NAMES[k]);
+  let head,txt;
+  if(!arrived.length){head='你一個人到了';txt='你站在光裡，身後什麼都沒有。你回頭看，霧很平，像從來沒有人走過。'}
+  else if(arrived.length>=4){head='你們到了';txt='五個人出發，到的人沒有人說話。你們只是並排站著，看著前面那一盞燈。'}
+  else{head='你們到了';txt='到的是：'+list.join('、')+'。其他人的名字，你在心裡一個一個唸了一遍。'}
+  const lines=[];
+  lines.push('<dt>到達</dt><dd>'+(list.length?list.join('、'):'只有你')+'</dd>');
+  lines.push('<dt>老蔡</dt><dd>'+(S.team.cai?'他站在線外很久，沒有再往前一步。':S.f.caiGone?'他替你擋住了那道光。':S.f.calledBack?'你喊了他。':'他在溝邊對你說：別等我。')+'</dd>');
+  lines.push('<dt>美蘭母子</dt><dd>'+(S.team.mei?(S.f.meiCold?'美蘭到了，但她再也沒看過你。':'美蘭牽著小宇，他睡著了。'):'你再也沒有聽到那個孩子的咳聲。')+'</dd>');
+  lines.push('<dt>朴大哥</dt><dd>'+(S.team.piao?(S.f.carry?'你背了他一路。':'他自己走完了最後一段。'):'他坐在路邊，沒有抬頭。')+'</dd>');
+  lines.push('<dt>母親</dt><dd>她留在原地。這是她替你選的。</dd>');
+  lines.push('<dt>在民</dt><dd>'+(S.team.min?'他在光裡哭了。':S.f.answered?'他走向了那個聲音。':'他沒有走到。')+'</dd>');
+  await panel({k:'第四章　完',title:head,body:'<p>「你安全了。」一個陌生的聲音說，用你聽得懂的話。</p><p>'+txt+'</p><p>你聽見那句話，卻發現自己已經不知道要怎麼相信。</p><dl>'+lines.join('')+'</dl>',
+    btns:[{id:'go',label:'走完這段旅程'}]});
+}
+async function showTitle(){
+  hud();
+  await panel({k:'第四章',title:'最後一夜',body:'<p>你被編為「第一個」。</p><p>一支五個人的隊伍，一道會轉動的光，和一個你看不見、只聽得到的東西。你前面做過的所有選擇，都會在黑暗裡回來找你。</p><p>同行的人可能因你的選擇消失。左上角的圓點會顯示還有誰在你身邊，變紅就是剛剛有人不見了。</p>',
+    btns:[{id:'go',label:'開始'}]});
+  initAudio();ambient(.04,.05);
+}
+  let bound=false;
+  return {async play(){
+    H.reset();H.raidTick=raidTick;H.PS=PS;H.onStep=onStep;H.stepIv=stepIv;H.tick4=tick4;setHud(HUD4,'第四章　最後一夜');
+    if(!bound){bound=true;
+      $('bSn').addEventListener('click',()=>{sneakT=!sneakT;$('bSn').classList.toggle('on',sneakT)});
+      $('bRun').addEventListener('pointerdown',e=>{runHold=true;try{$('bRun').setPointerCapture(e.pointerId)}catch(_){}$('bRun').classList.add('on');e.preventDefault()});['pointerup','pointercancel'].forEach(ev=>$('bRun').addEventListener(ev,()=>{runHold=false;$('bRun').classList.remove('on')}));}
+    S={sus:0,team:{cai:1,mei:1,kid:1,min:1,piao:1},f:{}};CPi=0;snap=null;W=null;
+    $('fade').style.opacity=1;await showTitle();await ruin();saveCP(0);
+    while(true){const r=await wild(CPi);if(r==='done')break}
+    $('mb').style.display='none';await fadeTo(1,1600);await ending4();
+  }};
+}
+const getCH=n=>CH[n]||(CH[n]=n==1?mkCH1():n==3?mkCH3():mkCH4());
+
+/* chapter 2 : embedded page, talks to us via postMessage */
+const ch2Src=()=>{const e=document.getElementById('ch2src');return e?e.textContent.replace(/<\\\/script/g,'</script'):''};
+function playCh2(){
+  return new Promise(res=>{
+    H.reset();raid=null;setHud('','第二章　渡河');ambient(0,0);beat.vol=0;
+    try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+    const f=$('ch2f');let src=ch2Src();
+    const c1=SAVE.c1||{};
+    const from=c1.paper?(c1.burned?'你燒掉了那張紙，但記得上面那條彎彎的線，走了四天':'你照著紙條走了四天'):'你沒有紙，只憑記憶裡的方向走了四天';
+    src=src.replace('你照著紙條走了四天',from);
+    const on=e=>{if(e.source!==f.contentWindow||!e.data||e.data.type!=='ch2')return;window.removeEventListener('message',on);
+      f.style.display='none';document.body.classList.remove('c2');f.srcdoc='';SAVE.c2={fails:e.data.fails||0};res()};
+    window.addEventListener('message',on);
+    document.body.classList.add('c2');f.style.display='block';$('fade').style.opacity=0;f.srcdoc=src;
+    f.addEventListener('load',()=>{try{f.contentWindow.focus()}catch(e){}},{once:true});
+  });
+}
+
+/* bridges between chapters (they read what you did) */
+async function bridge12(){
+  const c=SAVE.c1;
+  const t=c.paper?(c.burned?'你燒掉了那張紙，但那條彎彎的線，已經在你腦子裡了。':'那張紙貼著你的胸口。上面只有一條像河的線。'):'你沒有紙。你只記得母親那句話。';
+  await panel({k:'',title:'走了四天',body:'<p>'+t+'</p><p>你離開了小鎮。身後沒有人送你，也沒有人知道你去了哪裡——除了她。</p>',btns:[{id:'go',label:'繼續'}]});
+}
+async function bridge23(){
+  const f=SAVE.c2.fails||0;
+  const t=f==0?'你一次就過了河。那條河好像在放你走。':f<3?'你被那些光與狗叫聲嚇退過'+f+'次，最後還是游到了對岸。':'你被光與狗叫聲逼退過'+f+'次。每一次回頭，都更接近那個你不想回去的地方。';
+  await panel({k:'第二章　完',title:'過河',body:'<p>冰冷的水沒過胸口，你什麼都聽不見，只有自己的呼吸。你游到對岸，趴在泥地上很久沒有動。但這只是第一道河。</p><p>'+t+'</p>',btns:[{id:'go',label:'進入第三章　藏身'}]});
+}
+async function bridge34(){
+  const c=SAVE.c3;
+  const t=c.end==='zhou'?'車開了一整夜，把你放在一座廢棄的廠房前。有人說：最後一段，要走路。':c.path==='run'?'你一個人沿著公路走，直到有人把你領進一座廢棄的廠房。':c.path==='surrender'?'你交出了一個名字。有人用那個名字，把你送進了一座廢棄的廠房。':'你躲過了一次，又躲過了一次。最後有人把你帶進一座廢棄的廠房。';
+  await panel({k:'',title:'最後一段',body:'<p>'+t+'</p><p>裡面還有四個人。他們都在等天黑。</p>',btns:[{id:'go',label:'繼續'}]});
+}
+async function recap(){
+  const c1=SAVE.c1,c2=SAVE.c2,c3=SAVE.c3,c4=SAVE.c4;
+  const NM={cai:'老蔡',mei:'美蘭',kid:'小宇',min:'在民',piao:'朴大哥'};
+  const arr=Object.keys(NM).filter(k=>c4.team&&c4.team[k]).map(k=>NM[k]);
+  const rows=[];
+  rows.push('<dt>配給</dt><dd>'+(c1.reported?'你檢舉了別人，換了一點安全。':c1.paper?(c1.burned?'你收下了那張紙，又燒了它。':'你收下了那張紙，一直留著。'):c1.pushed?'你把那張紙推了回去。':'你什麼也沒有收下。')+'</dd>');
+  rows.push('<dt>渡河</dt><dd>'+((c2.fails||0)==0?'一次就過了。':'倒下了 '+c2.fails+' 次，又爬了起來。')+'</dd>');
+  rows.push('<dt>藏身</dt><dd>'+(c3.end==='zhou'?'你上了那輛車。':c3.path==='run'?'你一個人跑了。':c3.path==='surrender'?'你把自己交了出去，換來一個名字。':'你躲過了兩次。')+'</dd>');
+  rows.push('<dt>最後一夜</dt><dd>'+(arr.length?'到的人：'+arr.join('、'):'只有你到了')+'</dd>');
+  rows.push('<dt>母親</dt><dd>'+(c1.mom?'那一夜，你應了她一聲。':'那一夜，你沒有出聲。')+'</dd>');
+  await panel({k:'渡江　完',title:'她替你選的',body:'<p>你從四條路走到這裡。每一次選擇，都留在身後。</p><dl>'+rows.join('')+'</dl><p>她說的是：不管發生什麼事，都不要回頭。</p><p>你沒有回頭。但你一直在聽。</p>',
+    btns:[{id:'again',label:'回到標題'}]});
+}
+
+async function titleScreen(){
+  $('fade').style.opacity=1;setHud('','');
+  const c=await panel({k:'DUHJANG',title:'渡江',body:'<p>你是李恩惠，二十六歲。深夜停電，母親在床上咳。</p><p>四個章節：<b>配給</b>、<b>渡河</b>、<b>藏身</b>、<b>最後一夜</b>。你在每一章做的選擇，都會被帶到後面。</p>',
+    btns:[{id:'new',label:'從第一章開始'},{id:'c2',label:'跳到第二章',ghost:true},{id:'c3',label:'跳到第三章',ghost:true},{id:'c4',label:'跳到第四章',ghost:true}]});
+  initAudio();return c;
+}
+async function main(){
+  resize();requestAnimationFrame(frame);
+  while(true){
+    const c=await titleScreen();
+    if(c==='new'){SAVE.c1={};SAVE.c2={};SAVE.c3={};SAVE.c4={}}
+    const start=c==='new'?1:+c.slice(1);
+    if(start<=1){await getCH(1).play();await bridge12()}
+    if(start<=2){await playCh2();await bridge23()}
+    if(start<=3){await getCH(3).play();await bridge34()}
+    await getCH(4).play();
+    await recap();
+  }
+}
+main();
+
+</script>
+<script type="text/plain" id="ch2src"><title>渡江 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;900&display=swap">
+<style>
+/* Layout: slim status bar, then a 3D stage with HUD laid over it. Chase camera sits behind and above the runner. Single look by choice: moonlit night, cold grey-blue ink, sodium-amber torchlight, red only for alarm. */
+:root {
+  color-scheme: dark;
+  --bg: #0a0c0d;
+  --ink: #c9cfd0;
+  --mute: #6d777a;
+  --line: #1d2427;
+  --lamp: #c98a2b;
+  --danger: #b8292e;
+  --serif: "Noto Serif TC", serif;
+  --sans: "Noto Sans TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+  padding-block: 10px; box-sizing: border-box; overflow: hidden;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-user-select: none; user-select: none;
+}
+.app { height: 100%; display: flex; flex-direction: column; gap: 10px; max-width: 980px; margin: 0 auto; }
+.bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: var(--mute); }
+.bar .lab { letter-spacing: .14em; margin-right: 6px; font-family: var(--sans); font-size: 11px; }
+.bar .bpm { color: var(--danger); }
+.bar .st { color: var(--ink); }
+.mute { margin-left: auto; font: 500 12px var(--sans); color: var(--mute); background: none; border: 1px solid var(--line); border-radius: 3px; padding: 5px 10px; cursor: pointer; }
+.mute:hover { color: var(--ink); border-color: var(--mute); }
+.mute:focus-visible, .btn:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
+.stage { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); overflow: hidden; background: #05080b; }
+.alarm { position: absolute; inset: 0; pointer-events: none; z-index: 3; background: radial-gradient(ellipse at center, rgba(184,41,46,0) 40%, rgba(184,41,46,.55) 100%); opacity: 0; transition: opacity .25s; }
+.hint { position: absolute; left: 0; right: 0; top: 12px; text-align: center; font-size: 13px; line-height: 1.7; padding: 0 16px; pointer-events: none; z-index: 4; text-shadow: 0 0 6px #000; transition: opacity .6s; }
+.stam { position: absolute; left: 14px; bottom: 14px; z-index: 4; pointer-events: none; font-size: 11px; color: var(--ink); text-shadow: 0 0 4px #000; }
+.stam .tr { width: 110px; height: 6px; background: rgba(29,36,39,.9); margin-top: 4px; }
+.stam .fi { height: 100%; width: 100%; background: var(--lamp); }
+.stam .fi.ex { background: var(--danger); }
+.prog { position: absolute; right: 14px; top: 20%; bottom: 20%; width: 4px; background: rgba(29,36,39,.9); z-index: 4; pointer-events: none; }
+.prog i { position: absolute; left: -3px; width: 10px; height: 6px; background: var(--ink); bottom: 0; }
+.prog b { position: absolute; left: 0; top: -4px; width: 4px; height: 4px; background: #4a7a99; }
+.hid { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 12px; letter-spacing: .2em; color: var(--lamp); z-index: 4; pointer-events: none; opacity: 0; transition: opacity .3s; }
+.subt { position: absolute; left: 0; right: 0; bottom: 44px; text-align: center; padding: 0 20px; font-size: 13px; line-height: 1.7; color: #9aa4a7; letter-spacing: .06em; text-shadow: 0 0 6px #000; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .5s; }
+.sb, .sk { position: absolute; border-radius: 50%; pointer-events: none; z-index: 4; display: none; }
+.sb { width: 120px; height: 120px; border: 2px solid rgba(201,207,208,.25); margin: -60px 0 0 -60px; }
+.sk { width: 34px; height: 34px; background: rgba(201,138,43,.55); margin: -17px 0 0 -17px; }
+.fade { position: absolute; inset: 0; background: #000; z-index: 8; pointer-events: none; opacity: 0; transition: opacity .9s; }
+.fade.on { opacity: 1; }
+.title { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 24px; background: rgba(5, 8, 11, .9); }
+.title[hidden] { display: none !important; }
+.title h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(48px, 15vw, 96px); letter-spacing: .3em; padding-left: .3em; }
+.title .sub { font-family: var(--mono); font-size: 12px; letter-spacing: .24em; color: var(--lamp); }
+.title p { margin: 0; color: var(--mute); font-size: 13px; line-height: 1.9; max-width: 36ch; }
+.btn { font: 500 15px var(--sans); letter-spacing: .2em; color: var(--ink); background: #0f1214; border: 1px solid #263035; border-radius: 3px; padding: 13px 40px; cursor: pointer; }
+.btn:hover { border-color: var(--lamp); }
+@media (prefers-reduced-motion: reduce) { .fade, .alarm, .hint, .hid { transition: none; } }
+</style>
+
+<div class="app">
+  <div class="bar">
+    <span class="bpm"><span class="lab">心跳</span><span id="bpm">64</span></span>
+    <span class="st" id="state">潛行中</span>
+    <button class="mute" id="qBtn" type="button">畫質</button>
+    <button class="mute" id="muteBtn" type="button" style="margin-left:0">聲音開</button>
+  </div>
+  <div class="stage" id="stage">
+    <div class="alarm" id="alarm"></div>
+    <div class="hint" id="hint"></div>
+    <div class="stam"><span>體力</span><div class="tr"><div class="fi" id="stamFill"></div></div></div>
+    <div class="prog"><b></b><i id="progDot"></i></div>
+    <div class="hid" id="hid">藏身中</div>
+    <div class="subt" id="subt"></div>
+    <div class="sb" id="sb"></div><div class="sk" id="sk"></div>
+    <div class="fade" id="fade"></div>
+    <div class="title" id="title">
+      <div class="sub" id="tSub">第二章　渡河</div>
+      <h1 id="tH">渡江</h1>
+      <p id="tP">你照著紙條走了四天，只在夜裡移動。河就在前方，蘆葦後面是鐵絲網、瞭望塔和來回走動的手電筒光。穿過缺口，躲進蘆葦，甩開守軍，游向對岸。守軍一旦鎖定你，就會開槍，還會放出追蹤犬。</p>
+      
+      <p id="tC"></p>
+      <button class="btn" id="goBtn" type="button">開始逃亡</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"><\/script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $('stage'), hintEl = $('hint');
+  var coarse = false, reduce = false;
+  try { coarse = matchMedia('(pointer: coarse)').matches; reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  $('tC').textContent = coarse ? '拖曳移動，拉越遠跑越快，會消耗體力。' : 'WASD 或方向鍵移動，按住 Shift 奔跑（消耗體力）。';
+
+  var renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
+  catch (e) { $('tP').textContent = '這個瀏覽器無法啟動 3D 畫面，請換一個瀏覽器再試。'; $('goBtn').hidden = true; return; }
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  var cvEl = renderer.domElement;
+  cvEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none';
+  stage.insertBefore(cvEl, stage.firstChild);
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05080b);
+  scene.fog = new THREE.FogExp2(0x05080b, 0.024);
+  var camera = new THREE.PerspectiveCamera(52, 1, 0.1, 220);
+  function resize() {
+    var r = stage.getBoundingClientRect();
+    renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
+    camera.aspect = Math.max(0.2, r.width / Math.max(1, r.height));
+    camera.updateProjectionMatrix();
+    if (composer) composer.setSize(Math.max(1, r.width), Math.max(1, r.height));
+  }
+  window.addEventListener('resize', resize);
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+  resize();
+
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function adiff(a, b) { var d = a - b; while (d > Math.PI) d -= 6.283185; while (d < -Math.PI) d += 6.283185; return d; }
+
+  /* ---------- audio ---------- */
+  var ac = null, master = null, drone = null, noiseBuf = null, muted = false, beatT = null, beating = false, extraBpm = 0;
+  function audioInit() {
+    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ac.destination);
+      var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 140; lp.connect(master);
+      var g = ac.createGain(); g.gain.value = 0.06; g.connect(lp);
+      [48, 49.3].forEach(function (f) { var o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(g); o.start(); });
+      drone = { g: g, lp: lp };
+      noiseBuf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.2), ac.sampleRate);
+      var d = noiseBuf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      initMusic();
+    } catch (e) { ac = null; }
+  }
+  function thump(a, f) {
+    if (!ac) return;
+    var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.2);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.26);
+  }
+  var stepT = 0;
+  function footstep(run, reed, water) {
+    if (!ac) return;
+    var t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noiseBuf; f.type = reed ? 'bandpass' : 'lowpass'; f.frequency.value = water ? 900 : reed ? 2200 : 420 + Math.random() * 160; f.Q.value = reed ? 0.8 : 1;
+    var v = (run ? 0.5 : 0.32) * (water ? 1.2 : 1);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (water ? 0.2 : 0.11));
+    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + 0.22);
+    if (!reed) thump(run ? 0.22 : 0.14, 95 + Math.random() * 25);
+  }
+  function knock(vol) {
+    if (!ac) return;
+    var t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.value = 520;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + 0.16);
+    thump(vol * 0.9, 120);
+  }
+  function whistle() {
+    if (!ac) return;
+    var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(1900, t); o.frequency.linearRampToValueAtTime(2500, t + 0.3);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.42);
+  }
+  function stinger() {
+    if (!ac) return;
+    var t = ac.currentTime;
+    [233, 247, 330].forEach(function (f) {
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 2, t); o.frequency.exponentialRampToValueAtTime(f * 0.5, t + 0.9);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.95);
+    });
+  }
+  function gunshot() {
+    if (!ac) return;
+    var t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), dl = ac.createDelay(1), fb = ac.createGain();
+    s.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.setValueAtTime(7000, t); f.frequency.exponentialRampToValueAtTime(300, t + 0.35);
+    g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    dl.delayTime.value = 0.3; fb.gain.value = 0.42;
+    s.connect(f); f.connect(g); g.connect(master); g.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(master);
+    s.start(t); s.stop(t + 0.2);
+    thump(1, 90);
+    setTimeout(function () { try { dl.disconnect(); } catch (e) {} }, 2500);
+  }
+  function flashScreen() {
+    if (reduce) return;
+    try { stage.animate([{ filter: 'brightness(3.2)' }, { filter: 'none' }], { duration: 220 }); } catch (e) {}
+  }
+
+  /* original horror score: a warped loudspeaker march over a dark pad. No existing songs are used. */
+  var mus = null, musOn = false, musT = null, musStep = 0, musChase = false;
+  function initMusic() {
+    var bus = ac.createGain(); bus.gain.value = 0;
+    var sh = ac.createWaveShaper(), cu = new Float32Array(256);
+    for (var i = 0; i < 256; i++) { var x = i / 128 - 1; cu[i] = Math.tanh(x * 3); }
+    sh.curve = cu;
+    var bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 0.7;
+    var out = ac.createGain(); out.gain.value = 0.55;
+    var dl = ac.createDelay(1.0); dl.delayTime.value = 0.23;
+    var fb = ac.createGain(); fb.gain.value = 0.4;
+    var dg = ac.createGain(); dg.gain.value = 0.5;
+    bus.connect(sh); sh.connect(bp); bp.connect(out); out.connect(master);
+    bp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(dg); dg.connect(master);
+    var lfo = ac.createOscillator(); lfo.frequency.value = 0.4;
+    var lgn = ac.createGain(); lgn.gain.value = 35; lfo.connect(lgn); lfo.start();
+    var cr = ac.createBufferSource(); cr.buffer = noiseBuf; cr.loop = true;
+    var hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3500;
+    var cg = ac.createGain(); cg.gain.value = 0.02;
+    cr.connect(hp); hp.connect(cg); cg.connect(bus); cr.start();
+    var pad = ac.createGain(); pad.gain.value = 1;
+    var plp = ac.createBiquadFilter(); plp.type = 'lowpass'; plp.frequency.value = 700;
+    pad.connect(plp); plp.connect(master);
+    var rb = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), rd = rb.getChannelData(0);
+    for (var ri2 = 0; ri2 < rd.length; ri2++) rd[ri2] = Math.random() * 2 - 1;
+    var rs = ac.createBufferSource(); rs.buffer = rb; rs.loop = true;
+    var rhp = ac.createBiquadFilter(); rhp.type = 'highpass'; rhp.frequency.value = 1400;
+    var rlp = ac.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 7000;
+    var rg = ac.createGain(); rg.gain.value = 0.05;
+    rs.connect(rhp); rhp.connect(rlp); rlp.connect(rg); rg.connect(master); rs.start();
+    mus = { bus: bus, lg: lgn, pad: pad };
+  }
+  var MEL = [0, null, 0, 3, 7, null, 5, 3, 2, null, 0, -2, 0, null, null, null, -2, null, -2, 0, 3, null, 2, 0, -2, null, -5, null, -7, null, null, null];
+  function note(freq, t0, dur, vol) {
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = -38;
+    mus.lg.connect(o.detune);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(mus.bus); o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  function chord(freqs, t0, dur) {
+    freqs.forEach(function (f) {
+      [-9, 9].forEach(function (cents) {
+        var o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = cents;
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.035, t0 + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g); g.connect(mus.pad); o.start(t0); o.stop(t0 + dur + 0.1);
+      });
+    });
+  }
+  function musTick() {
+    if (!musOn || !ac || !mus) return;
+    var spb = 60 / (musChase ? 108 : 72), t = ac.currentTime + 0.05;
+    var n = MEL[musStep % MEL.length];
+    if (n !== null) note(220 * Math.pow(2, n / 12), t, spb * 0.9, musChase ? 0.28 : 0.2);
+    if (musStep % 16 === 0) { chord((musStep / 16) % 2 === 0 ? [110, 130.8, 164.8] : [116.5, 146.8, 174.6], t, spb * 16); }
+    musStep++;
+    musT = setTimeout(musTick, spb * 1000);
+  }
+  function startMusic() {
+    if (!ac || !mus || musOn) return;
+    musOn = true; musStep = 0;
+    mus.bus.gain.cancelScheduledValues(ac.currentTime); mus.bus.gain.setTargetAtTime(0.9, ac.currentTime, 1.5);
+    musTick();
+  }
+  function stopMusic() {
+    musOn = false; clearTimeout(musT);
+    if (mus && ac) { mus.bus.gain.cancelScheduledValues(ac.currentTime); mus.bus.gain.setTargetAtTime(0, ac.currentTime, 0.08); }
+  }
+
+  /* fictional propaganda loudspeaker: Korean text read by the device's own voice, with Chinese subtitles. No real person is named. */
+  var KO = [
+    ['위대한 령도자 동지의 은혜에 감사드립니다.', '感謝偉大領導者同志的恩惠。'],
+    ['인민 여러분, 오늘도 충성으로 하루를 시작합시다.', '人民同胞們，今天也以忠誠開始這一天。'],
+    ['수상한 자를 보면 즉시 신고하십시오.', '看到可疑的人，請立即舉報。'],
+    ['위대한 령도자 동지의 품속에서 우리 인민은 행복합니다.', '在偉大領導者同志的懷抱裡，我們的人民是幸福的。'],
+    ['밤에는 모두 집에 머무르십시오.', '夜裡，請所有人待在家中。'],
+    ['침입자 발견! 포위하라!', '發現闖入者！包圍！'],
+    ['이은혜 동지, 지금 즉시 집으로 돌아오십시오.', '李恩惠同志，請立即回家。'],
+    ['이은혜 동지, 가족이 기다리고 있습니다.', '李恩惠同志，你的家人在等你。'],
+    ['이은혜 동지, 지금 돌아오면 용서받을 수 있습니다.', '李恩惠同志，現在回來，還能得到寬恕。'],
+    ['이은혜 동지, 당신이 어디에 있는지 우리는 알고 있습니다.', '李恩惠同志，我們知道你在哪裡。']
+  ];
+  var annOn = false, annT = null, annIdx = 0, namedIdx = 0, subT = null;
+  function koVoice() {
+    var vs = [];
+    try { vs = window.speechSynthesis.getVoices() || []; } catch (e) {}
+    for (var i = 0; i < vs.length; i++) if (/^ko/i.test(vs[i].lang)) return vs[i];
+    return null;
+  }
+  function say(i, urgent, named) {
+    var line = KO[i], el = $('subt');
+    el.textContent = '廣播：' + line[1]; el.style.opacity = 1;
+    clearTimeout(subT); subT = setTimeout(function () { el.style.opacity = 0; }, 5200);
+    if (muted) return;
+    try {
+      var v = koVoice();
+      if (!v || !window.speechSynthesis) return;
+      var u = new SpeechSynthesisUtterance(line[0]);
+      u.lang = 'ko-KR'; u.voice = v; u.pitch = 0.55; u.rate = urgent ? 1.05 : (named ? 0.72 : 0.8); u.volume = 0.9;
+      if (urgent) window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function annTick() {
+    if (!annOn) return;
+    var prog = P ? (START_Z - P.z) / (START_Z - RIVER_Z) : 0;
+    if (prog > 0.15 && Math.random() < 0.65) {
+      say(6 + (namedIdx++ % 4), false, true);
+      if (!reduce) { try { stage.animate([{ filter: 'brightness(0.45)' }, { filter: 'none' }], { duration: 900 }); } catch (e) {} }
+    } else say(annIdx++ % 5, false);
+    annT = setTimeout(annTick, 19000 + Math.random() * 8000);
+  }
+  function startAnn() { if (annOn) return; annOn = true; clearTimeout(annT); annT = setTimeout(annTick, 3500); }
+  function stopAnn() {
+    annOn = false; clearTimeout(annT);
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    $('subt').style.opacity = 0;
+  }
+
+  function curBpm() { return Math.min(172, 62 + extraBpm); }
+  function beatLoop() {
+    if (!beating) return;
+    var b = curBpm();
+    thump(0.6, 62);
+    setTimeout(function () { thump(0.38, 52); }, 17000 / b * 3.4);
+    $('bpm').textContent = Math.round(b);
+    if (b > 105) { try { navigator.vibrate && navigator.vibrate(18); } catch (e) {} }
+    beatT = setTimeout(beatLoop, 60000 / b);
+  }
+  function startBeat() { if (!beating) { beating = true; beatLoop(); } startMusic(); startAnn(); }
+  function stopBeat() { beating = false; clearTimeout(beatT); stopMusic(); stopAnn(); }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) stopBeat(); else if (state === 'play') startBeat(); });
+  $('muteBtn').addEventListener('click', function () {
+    muted = !muted; this.textContent = muted ? '聲音關' : '聲音開';
+    if (master) master.gain.value = muted ? 0 : 0.9;
+  });
+
+  /* ---------- world helpers ---------- */
+  var matCache = {};
+  function mat(c) { if (!matCache[c]) matCache[c] = new THREE.MeshLambertMaterial({ color: c, flatShading: true }); return matCache[c]; }
+  function box(w, h, d, c) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); }
+
+  scene.add(new THREE.HemisphereLight(0x6f8bb0, 0x0a0f0d, 0.6));
+  var moon = new THREE.DirectionalLight(0xa9c2e0, 0.6);
+  moon.position.set(-14, 22, 8); moon.castShadow = true;
+  moon.shadow.mapSize.set(1024, 1024);
+  var shc = moon.shadow.camera; shc.left = -18; shc.right = 18; shc.top = 18; shc.bottom = -18; shc.near = 1; shc.far = 70;
+  moon.shadow.bias = -0.0008;
+  scene.add(moon); scene.add(moon.target);
+
+  var XW = 26;
+  function X(f) { return (f - 0.5) * XW; }
+  function Z(y) { return y / 16 - 78; }
+  var RIVER_Z = -72, START_Z = Z(2310);
+
+  var gc = document.createElement('canvas'); gc.width = gc.height = 256;
+  var gx = gc.getContext('2d');
+  gx.fillStyle = '#10190f'; gx.fillRect(0, 0, 256, 256);
+  for (var gi = 0; gi < 2200; gi++) {
+    gx.fillStyle = 'hsl(' + (80 + Math.random() * 50) + ',' + (14 + Math.random() * 20) + '%,' + (7 + Math.random() * 14) + '%)';
+    gx.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1 + Math.random() * 5);
+  }
+  var groundTex = new THREE.CanvasTexture(gc); groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping; groundTex.repeat.set(40, 70);
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 220), new THREE.MeshPhongMaterial({ map: groundTex, specular: 0x111a24, shininess: 24 }));
+  ground.receiveShadow = true;
+  ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -2); scene.add(ground);
+  var MUD0 = Z(1400), MUD1 = Z(1780);
+  var mud = new THREE.Mesh(new THREE.PlaneGeometry(XW + 20, MUD1 - MUD0), mat(0x1a150e));
+  mud.rotation.x = -Math.PI / 2; mud.position.set(0, 0.02, (MUD0 + MUD1) / 2); scene.add(mud);
+
+  // river
+  var riverGeo = new THREE.PlaneGeometry(120, 30, 40, 12);
+  var river = new THREE.Mesh(riverGeo, new THREE.MeshPhongMaterial({ color: 0x0a2233, specular: 0x88aacc, shininess: 70, flatShading: true }));
+  river.rotation.x = -Math.PI / 2; river.position.set(0, -0.35, RIVER_Z - 12); scene.add(river);
+  var bank = box(120, 0.5, 2, 0x1c2418); bank.position.set(0, 0.1, RIVER_Z + 0.4); scene.add(bank);
+  var riverBase = river.geometry.attributes.position.array.slice();
+
+  // trees on both sides
+  var treeG = new THREE.ConeGeometry(1.4, 5.5, 5); treeG.translate(0, 2.75, 0);
+  var trees = new THREE.InstancedMesh(treeG, mat(0x0c1a14), 70);
+  var dm = new THREE.Object3D();
+  for (var ti = 0; ti < 70; ti++) {
+    var side = ti % 2 ? 1 : -1;
+    dm.position.set(side * (15 + Math.random() * 14), 0, Z(Math.random() * 2400));
+    var sc = 0.8 + Math.random() * 1.1; dm.scale.set(sc, sc, sc); dm.rotation.y = Math.random() * 6; dm.updateMatrix();
+    trees.setMatrixAt(ti, dm.matrix);
+  }
+  scene.add(trees);
+  // far hills
+  for (var hi = 0; hi < 6; hi++) {
+    var hill = new THREE.Mesh(new THREE.ConeGeometry(18 + Math.random() * 10, 14 + Math.random() * 8, 5), mat(0x070d0b));
+    hill.position.set(-50 + hi * 20, 5, RIVER_Z - 34); scene.add(hill);
+  }
+
+  /* ---------- level ---------- */
+  var reeds = [], fences = [], rocks = [], towers = [], guards = [];
+  function R(fx, y, fw, h) { reeds.push({ x0: X(fx), x1: X(fx) + fw * XW, z0: Z(y), z1: Z(y) + h / 16 }); }
+  function F(y, segs) { segs.forEach(function (s) { fences.push({ x0: X(s[0]), x1: X(s[1]), z: Z(y) }); }); }
+  function K(fx, y, r) { rocks.push({ x: X(fx), z: Z(y), r: r / 13 }); }
+  function T(fx, y, base, amp, w) { towers.push({ x: X(fx), z: Z(y), base: base, amp: amp, w: w, ang: base }); }
+  function Gd(ax, bx, y, sp) { guards.push({ x: X(ax), z: Z(y), hz: Z(y), ax: X(ax), bx: X(bx), dir: 1, sp: sp / 20, ang: 0, st: 'patrol', last: null, lose: 0, srch: 0, anim: Math.random() * 6 }); }
+
+  R(0.30, 2250, 0.40, 90); R(0.05, 2120, 0.22, 80); R(0.62, 2060, 0.30, 90); R(0.38, 1960, 0.22, 70);
+  F(1860, [[0, 0.30], [0.42, 0.78], [0.88, 1]]);
+  R(0.22, 1900, 0.20, 60); R(0.70, 1900, 0.22, 60);
+  T(0.92, 1740, Math.PI, 0.5, 0.8);
+  Gd(0.12, 0.88, 2150, 45); Gd(0.2, 0.7, 1700, 50);
+  K(0.5, 1640, 16); K(0.2, 1520, 18); K(0.78, 1480, 14);
+  R(0.10, 1600, 0.20, 70); R(0.45, 1450, 0.20, 80); R(0.75, 1330, 0.20, 80); R(0.20, 1250, 0.22, 70);
+  T(0.08, 1330, 0, 0.6, 0.9); T(0.92, 1150, Math.PI, 0.6, 0.7);
+  Gd(0.3, 0.9, 1280, 55); Gd(0.1, 0.6, 1100, 50);
+  F(900, [[0, 0.55], [0.68, 1]]);
+  R(0.15, 980, 0.25, 80); R(0.60, 950, 0.20, 50);
+  Gd(0.4, 0.8, 850, 45); Gd(0.2, 0.6, 760, 40);
+  R(0.70, 760, 0.25, 70); R(0.10, 600, 0.25, 80); R(0.45, 520, 0.20, 80);
+  T(0.5, 560, Math.PI / 2, 0.9, 0.6);
+  R(0.05, 380, 0.30, 80); R(0.55, 330, 0.35, 80); R(0.30, 220, 0.30, 70); R(0.10, 150, 0.30, 60); R(0.60, 130, 0.30, 60);
+  Gd(0.1, 0.9, 300, 50); Gd(0.5, 0.1, 160, 45);
+
+  // reed meshes
+  var stemTotal = 0;
+  reeds.forEach(function (r) { r.n = Math.min(150, Math.floor((r.x1 - r.x0) * (r.z1 - r.z0) * 2.6)); stemTotal += r.n; });
+  var stemG = new THREE.ConeGeometry(0.07, 2.3, 4); stemG.translate(0, 1.15, 0);
+  var swayU = { value: 0 };
+  var stemMat = new THREE.MeshLambertMaterial({ color: 0x3b5b3b, flatShading: true });
+  stemMat.onBeforeCompile = function (shader) {
+    shader.uniforms.uTime = swayU;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n#ifdef USE_INSTANCING\nfloat sw = sin(uTime * 1.6 + instanceMatrix[3].x * 0.9 + instanceMatrix[3].z * 0.7);\ntransformed.x += sw * 0.07 * position.y;\ntransformed.z += cos(uTime * 1.3 + instanceMatrix[3].z) * 0.04 * position.y;\n#endif');
+  };
+  var stems = new THREE.InstancedMesh(stemG, stemMat, stemTotal);
+  var si = 0;
+  reeds.forEach(function (r) {
+    for (var i = 0; i < r.n; i++) {
+      dm.position.set(r.x0 + Math.random() * (r.x1 - r.x0), 0, r.z0 + Math.random() * (r.z1 - r.z0));
+      dm.rotation.set((Math.random() - 0.5) * 0.25, Math.random() * 6, (Math.random() - 0.5) * 0.25);
+      var sy = 0.8 + Math.random() * 0.5; dm.scale.set(1, sy, 1); dm.updateMatrix();
+      stems.setMatrixAt(si++, dm.matrix);
+    }
+  });
+  scene.add(stems);
+
+  // fences
+  fences.forEach(function (f) {
+    var w = f.x1 - f.x0, cx = (f.x0 + f.x1) / 2;
+    var wire = box(w, 0.08, 0.06, 0x555349); wire.position.set(cx, 1.0, f.z); scene.add(wire);
+    var wire2 = box(w, 0.08, 0.06, 0x555349); wire2.position.set(cx, 1.6, f.z); scene.add(wire2);
+    for (var px = f.x0; px <= f.x1 + 0.01; px += 2.2) { var post = box(0.14, 2.0, 0.14, 0x2b2a26); post.position.set(px, 1.0, f.z); post.castShadow = true; scene.add(post); }
+  });
+  // rocks
+  rocks.forEach(function (k) {
+    var m = new THREE.Mesh(new THREE.DodecahedronGeometry(k.r, 0), mat(0x2a3435)); m.position.set(k.x, k.r * 0.6, k.z); m.rotation.set(Math.random(), Math.random(), 0); m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  });
+
+  // light-sector texture
+  var lc = document.createElement('canvas'); lc.width = lc.height = 128;
+  var lx = lc.getContext('2d'), lg = lx.createRadialGradient(64, 64, 4, 64, 64, 64);
+  lx.fillStyle = '#000'; lx.fillRect(0, 0, 128, 128);
+  lg.addColorStop(0, '#e6e6e6'); lg.addColorStop(1, '#000');
+  lx.fillStyle = lg; lx.fillRect(0, 0, 128, 128);
+  var lightTex = new THREE.CanvasTexture(lc);
+  function sector(half, color, op) {
+    var grp = new THREE.Group();
+    var m = new THREE.Mesh(new THREE.CircleGeometry(1, 24, -half, half * 2),
+      new THREE.MeshBasicMaterial({ alphaMap: lightTex, color: color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    m.rotation.x = -Math.PI / 2; m.position.y = 0.08; grp.add(m);
+    return grp;
+  }
+  function makeBeam(range, half, apexH, color, op) {
+    var grp = new THREE.Group();
+    var D = range * 0.85, L = Math.sqrt(D * D + apexH * apexH), r = D * Math.tan(half) * 1.05;
+    var geo = new THREE.ConeGeometry(r, L, 18, 1, true); geo.translate(0, -L / 2, 0);
+    var m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    m.position.y = apexH; m.rotation.z = Math.atan2(D, apexH);
+    grp.add(m);
+    return grp;
+  }
+
+  // towers
+  towers.forEach(function (t) {
+    t.range = 17; t.half = 0.2;
+    var g = new THREE.Group();
+    [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]].forEach(function (p) { var leg = box(0.14, 5.4, 0.14, 0x1b1e1c); leg.position.set(p[0], 2.7, p[1]); g.add(leg); });
+    var cab = box(2.0, 1.2, 2.0, 0x242826); cab.position.y = 5.9; g.add(cab);
+    var lamp = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe3a0 })); lamp.position.y = 5.9; g.add(lamp);
+    g.position.set(t.x, 0, t.z); scene.add(g);
+    t.sec = sector(t.half, 0xffe9a8, 0.7); t.sec.scale.set(t.range, 1, t.range); t.sec.position.set(t.x, 0, t.z); scene.add(t.sec);
+    t.light = new THREE.PointLight(0xffe3a0, 0.9, 22); t.light.position.set(t.x, 5.9, t.z); scene.add(t.light);
+    t.beam = makeBeam(t.range, t.half, 5.9, 0xffe9b0, 0.07); t.beam.position.set(t.x, 0, t.z); scene.add(t.beam);
+  });
+
+  /* ---------- characters ---------- */
+  function makePerson(kind) {
+    var girl = kind === 'girl';
+    var jacket = girl ? 0x43515d : 0x5a5c3a, pants = girl ? 0x23282b : 0x34331f, skin = 0xd6b498;
+    var g = new THREE.Group(), rig = {};
+    var torso = box(0.64, 0.74, 0.36, jacket); torso.position.y = 1.2; g.add(torso);
+    var neck = box(0.68, 0.14, 0.4, girl ? 0xc98a2b : 0x3f4029); neck.position.y = 1.58; g.add(neck);
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), mat(skin)); head.position.y = 1.82; g.add(head);
+    [-0.08, 0.08].forEach(function (ex) { var e = box(0.04, 0.04, 0.03, 0x161616); e.position.set(ex, 1.84, 0.2); g.add(e); });
+    function limb(w, h, d, c, x, y) { var pv = new THREE.Group(); pv.position.set(x, y, 0); var m = box(w, h, d, c); m.position.y = -h / 2; pv.add(m); g.add(pv); return pv; }
+    rig.legL = limb(0.24, 0.84, 0.26, pants, -0.17, 0.84);
+    rig.legR = limb(0.24, 0.84, 0.26, pants, 0.17, 0.84);
+    rig.armL = limb(0.17, 0.66, 0.2, jacket, -0.41, 1.5);
+    rig.armR = limb(0.17, 0.66, 0.2, jacket, 0.41, 1.5);
+    [rig.legL, rig.legR].forEach(function (pv) { var bt = box(0.27, 0.16, 0.34, 0x0e0e0e); bt.position.set(0, -0.8, 0.03); pv.add(bt); });
+    if (girl) {
+      var hair = new THREE.Mesh(new THREE.SphereGeometry(0.235, 10, 8, 0, 6.283, 0, 1.9), mat(0x111111)); hair.position.set(0, 1.84, -0.02); g.add(hair);
+      var pony = box(0.1, 0.4, 0.1, 0x111111); pony.position.set(0, 1.7, -0.27); pony.rotation.x = 0.35; g.add(pony);
+      var bag = box(0.4, 0.5, 0.2, 0x2d3a2d); bag.position.set(0, 1.25, -0.28); g.add(bag);
+    } else {
+      var cap = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.25, 0.14, 10), mat(0x44452a)); cap.position.y = 2.02; g.add(cap);
+      var brim = box(0.34, 0.04, 0.2, 0x2f301e); brim.position.set(0, 1.97, 0.24); g.add(brim);
+      var rifle = box(0.06, 0.95, 0.08, 0x161614); rifle.position.set(0.2, 1.2, -0.26); rifle.rotation.z = 0.14; g.add(rifle);
+    }
+    var sh = new THREE.Mesh(new THREE.CircleGeometry(0.6, 14), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4 }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; g.add(sh);
+    g.traverse(function (o) { if (o.isMesh && o.geometry.type !== 'CircleGeometry') o.castShadow = true; });
+    g.userData.rig = rig;
+    return g;
+  }
+  function animPerson(g, anim, amp) {
+    var r = g.userData.rig, s = Math.sin(anim) * amp;
+    r.legL.rotation.x = s; r.legR.rotation.x = -s; r.armL.rotation.x = -s * 0.9; r.armR.rotation.x = s * 0.9;
+  }
+  function faceTo(g, ang) { g.rotation.y = Math.PI / 2 - ang; }
+
+  function iconTex(txt, col) {
+    var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d');
+    x.font = '700 54px "IBM Plex Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = col; x.fillText(txt, 32, 34);
+    return new THREE.CanvasTexture(c);
+  }
+  var texBang = iconTex('!', '#e0383e'), texQ = iconTex('?', '#d9a13a');
+
+  var player = makePerson('girl'); player.rotation.order = 'YXZ'; scene.add(player);
+  guards.forEach(function (g) {
+    g.mesh = makePerson('guard'); scene.add(g.mesh);
+    g.laser = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 1), new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
+    g.laser.visible = false; scene.add(g.laser);
+    g.flash = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff0b0 }));
+    g.flash.visible = false; scene.add(g.flash); g.flashT = 0; g.aim = 0; g.chaseT = 0;
+    g.sp1 = sector(0.5, 0xffe9a8, 0.45); g.sp1.scale.set(9.5, 1, 9.5); scene.add(g.sp1);
+    g.sp2 = sector(0.4, 0xffd9c8, 0.7); g.sp2.scale.set(14, 1, 14); g.sp2.visible = false; scene.add(g.sp2);
+    g.b1 = makeBeam(9.5, 0.5, 1.4, 0xffe9b0, 0.1); scene.add(g.b1);
+    g.b2 = makeBeam(14, 0.4, 1.4, 0xffd9c8, 0.14); g.b2.visible = false; scene.add(g.b2);
+    g.icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: texBang, depthTest: false, transparent: true }));
+    g.icon.scale.set(1.2, 1.2, 1); g.icon.visible = false; g.icon.renderOrder = 10; scene.add(g.icon);
+  });
+
+  /* ---------- atmosphere: rain, mist, breath, post effects, quality ---------- */
+  var RAIN_N = 1800, rainCount = RAIN_N;
+  var rainGeo = new THREE.BufferGeometry(), rainPos = new Float32Array(RAIN_N * 6), rainVel = new Float32Array(RAIN_N);
+  for (var ri = 0; ri < RAIN_N; ri++) {
+    var rx = (Math.random() - 0.5) * 36, ry = Math.random() * 18, rz = (Math.random() - 0.5) * 36;
+    rainPos.set([rx, ry, rz, rx + 0.05, ry - 0.55, rz + 0.04], ri * 6);
+    rainVel[ri] = 14 + Math.random() * 6;
+  }
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+  var rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0x9fb6cf, transparent: true, opacity: 0.35, fog: false }));
+  rain.frustumCulled = false; scene.add(rain);
+
+  var mc = document.createElement('canvas'); mc.width = mc.height = 256;
+  var mcx = mc.getContext('2d');
+  for (var mi = 0; mi < 60; mi++) {
+    var mxp = Math.random() * 256, myp = Math.random() * 256, mr = 30 + Math.random() * 50;
+    var mg = mcx.createRadialGradient(mxp, myp, 0, mxp, myp, mr);
+    mg.addColorStop(0, 'rgba(150,175,195,0.16)'); mg.addColorStop(1, 'rgba(180,200,215,0)');
+    mcx.fillStyle = mg; mcx.fillRect(0, 0, 256, 256);
+  }
+  var mists = [];
+  [0.5, 1.3, 2.2].forEach(function (h, i) {
+    var t2 = new THREE.CanvasTexture(mc); t2.wrapS = t2.wrapT = THREE.RepeatWrapping; t2.repeat.set(6, 20);
+    var mm = new THREE.Mesh(new THREE.PlaneGeometry(70, 230), new THREE.MeshBasicMaterial({ map: t2, transparent: true, opacity: 0.22 - i * 0.05, depthWrite: false, fog: false }));
+    mm.rotation.x = -Math.PI / 2; mm.position.set(0, h, -2); scene.add(mm);
+    mists.push({ m: mm, t: t2, sp: 0.008 + i * 0.006 });
+  });
+
+  var puffTex = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d');
+    var g = x.createRadialGradient(32, 32, 0, 32, 32, 30);
+    g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(c);
+  })();
+  var puffs = [], puffT = 0;
+  for (var pi = 0; pi < 10; pi++) {
+    var psp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0 }));
+    psp.scale.set(0.3, 0.3, 1); psp.visible = false; scene.add(psp);
+    puffs.push({ s: psp, t: 0, a: false });
+  }
+  function emitPuff() {
+    for (var i = 0; i < puffs.length; i++) {
+      var p = puffs[i];
+      if (!p.a) { p.a = true; p.t = 0; p.s.visible = true; p.s.position.set(P.x + Math.cos(P.ang) * 0.3, 1.75, P.z + Math.sin(P.ang) * 0.3); return; }
+    }
+  }
+
+  var composer = null, finalPass = null, useComposer = false, pulseV = 0;
+  var FinalShader = {
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uPulse: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform sampler2D tDiffuse; uniform float uTime; uniform float uPulse; varying vec2 vUv;' +
+      'float rnd(vec2 c){ return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453); }' +
+      'void main(){ vec2 d = vUv - 0.5; float r = dot(d, d); vec2 off = d * r * 0.012;' +
+      'vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);' +
+      'col += (rnd(vUv * 900.0 + uTime) - 0.5) * 0.045;' +
+      'float l = dot(col, vec3(0.299, 0.587, 0.114)); col = mix(vec3(l), col, 0.82); col *= vec3(0.92, 1.0, 1.06);' +
+      'float vg = smoothstep(0.85, 0.15, r * (1.6 + uPulse)); col *= mix(0.45, 1.0, vg);' +
+      'gl_FragColor = vec4(col, 1.0); }'
+  };
+  function buildComposer() {
+    if (!(THREE.EffectComposer && THREE.RenderPass && THREE.ShaderPass && THREE.UnrealBloomPass)) return;
+    try {
+      var r = stage.getBoundingClientRect();
+      composer = new THREE.EffectComposer(renderer);
+      composer.setSize(r.width, r.height);
+      composer.addPass(new THREE.RenderPass(scene, camera));
+      composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(r.width, r.height), 0.35, 0.5, 0.88));
+      finalPass = new THREE.ShaderPass(FinalShader);
+      finalPass.renderToScreen = true;
+      composer.addPass(finalPass);
+    } catch (e) { composer = null; finalPass = null; }
+  }
+
+  var Q = coarse ? 'mid' : 'high';
+  try { var sq = localStorage.getItem('crossing3d-q'); if (sq === 'high' || sq === 'mid' || sq === 'low') Q = sq; } catch (e) {}
+  function applyQ() {
+    var hi = Q === 'high', mid = Q === 'mid', lo = Q === 'low';
+    renderer.shadowMap.enabled = !lo; moon.castShadow = !lo;
+    rainCount = hi ? RAIN_N : mid ? 900 : 0;
+    rain.visible = rainCount > 0; rainGeo.setDrawRange(0, rainCount * 2);
+    mists.forEach(function (m) { m.m.visible = !lo; });
+    towers.forEach(function (t) { t.light.visible = hi; });
+    if (hi && !composer) buildComposer();
+    useComposer = hi && !!composer;
+    scene.traverse(function (o) { if (o.material && !Array.isArray(o.material)) o.material.needsUpdate = true; });
+    $('qBtn').textContent = '畫質：' + (hi ? '高' : mid ? '中' : '低');
+  }
+  $('qBtn').addEventListener('click', function () {
+    Q = Q === 'high' ? 'mid' : Q === 'mid' ? 'low' : 'high';
+    try { localStorage.setItem('crossing3d-q', Q); } catch (e) {}
+    applyQ();
+  });
+  applyQ();
+
+  function atmos(dt) {
+    swayU.value = performance.now() / 1000;
+    var cx = P ? P.x : 0, cz = P ? P.z : START_Z;
+    if (P) { moon.position.set(P.x - 14, 22, P.z + 8); moon.target.position.set(P.x, 0, P.z); moon.target.updateMatrixWorld(); }
+    if (rain.visible) {
+      rain.position.set(cx, 0, cz - 6);
+      for (var i = 0; i < rainCount; i++) {
+        var j = i * 6, dy = rainVel[i] * dt;
+        rainPos[j + 1] -= dy; rainPos[j + 4] -= dy;
+        if (rainPos[j + 4] < 0) { rainPos[j + 1] += 18; rainPos[j + 4] += 18; }
+      }
+      rainGeo.attributes.position.needsUpdate = true;
+    }
+    mists.forEach(function (m) { m.t.offset.x += m.sp * dt; });
+    if (P && state === 'play') {
+      puffT -= dt;
+      if (puffT <= 0) { emitPuff(); puffT = P.running ? 0.5 : 1.3; }
+    }
+    puffs.forEach(function (p) {
+      if (!p.a) return;
+      p.t += dt;
+      var k = p.t / 1.2;
+      if (k >= 1) { p.a = false; p.s.visible = false; return; }
+      p.s.scale.set(0.3 + p.t * 0.6, 0.3 + p.t * 0.6, 1); p.s.position.y += dt * 0.35; p.s.material.opacity = 1 - k;
+    });
+    var ph = (performance.now() / 1000) * curBpm() / 60 * 6.283;
+    pulseV = 0;
+  }
+
+  /* ---------- state + input ---------- */
+  var state = 'title', P = null, clock = 0, alarmV = 0, camX = 0, camZ = 0, hintT = 0;
+  var keys = {}, ptr = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+  window.addEventListener('keydown', function (e) { keys[e.key.toLowerCase()] = true; if (state === 'play' && (e.key.indexOf('Arrow') === 0 || e.key === ' ')) e.preventDefault(); });
+  window.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
+  window.addEventListener('blur', function () { keys = {}; });
+  var sbEl = $('sb'), skEl = $('sk');
+  function lp(e) { var r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  cvEl.addEventListener('pointerdown', function (e) {
+    if (ptr.id !== null) return;
+    var p = lp(e); ptr.id = e.pointerId; ptr.ox = ptr.x = p.x; ptr.oy = ptr.y = p.y;
+    try { cvEl.setPointerCapture(e.pointerId); } catch (er) {}
+    sbEl.style.display = skEl.style.display = 'block';
+    sbEl.style.left = skEl.style.left = p.x + 'px'; sbEl.style.top = skEl.style.top = p.y + 'px';
+  });
+  cvEl.addEventListener('pointermove', function (e) {
+    if (e.pointerId !== ptr.id) return;
+    var p = lp(e); ptr.x = p.x; ptr.y = p.y;
+    var dx = p.x - ptr.ox, dy = p.y - ptr.oy, d = Math.min(60, Math.hypot(dx, dy)), a = Math.atan2(dy, dx);
+    skEl.style.left = (ptr.ox + Math.cos(a) * d) + 'px'; skEl.style.top = (ptr.oy + Math.sin(a) * d) + 'px';
+  });
+  function pup(e) { if (e.pointerId === ptr.id) { ptr.id = null; sbEl.style.display = skEl.style.display = 'none'; } }
+  cvEl.addEventListener('pointerup', pup); cvEl.addEventListener('pointercancel', pup);
+
+  function inReeds(x, z) {
+    for (var i = 0; i < reeds.length; i++) { var r = reeds[i]; if (x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1) return r; }
+    return null;
+  }
+  function blocked(x, z, rad) {
+    var i;
+    for (i = 0; i < fences.length; i++) { var f = fences[i]; if (x + rad > f.x0 && x - rad < f.x1 && Math.abs(z - f.z) < rad + 0.12) return true; }
+    for (i = 0; i < rocks.length; i++) { var k = rocks[i]; if (Math.hypot(x - k.x, z - k.z) < k.r + rad) return true; }
+    return false;
+  }
+  function onFence(x, z) {
+    for (var i = 0; i < fences.length; i++) { var f = fences[i]; if (x > f.x0 - 0.4 && x < f.x1 + 0.4 && Math.abs(z - f.z) < 0.6) return true; }
+    return false;
+  }
+
+  /* ---------- tracking dogs + streams ---------- */
+  var lastCause = 'shot', pendingDog = null, dogCool = 0, streams = [Z(1560), Z(1180), Z(700)];
+  function inWater(z) { for (var i = 0; i < streams.length; i++) if (Math.abs(z - streams[i]) < 1.4) return true; return false; }
+  streams.forEach(function (zc) {
+    var w = new THREE.Mesh(new THREE.PlaneGeometry(XW + 40, 2.8), new THREE.MeshPhongMaterial({ color: 0x0b2a3c, specular: 0x88aacc, shininess: 60, flatShading: true }));
+    w.rotation.x = -Math.PI / 2; w.position.set(0, 0.04, zc); scene.add(w);
+  });
+  function makeDog() {
+    var g = new THREE.Group(), legs = [];
+    var body = box(0.45, 0.42, 1.0, 0x17120e); body.position.set(0, 0.64, 0); g.add(body);
+    var head = box(0.34, 0.32, 0.4, 0x1b1511); head.position.set(0, 0.84, 0.62); g.add(head);
+    var snout = box(0.2, 0.18, 0.28, 0x120e0b); snout.position.set(0, 0.78, 0.88); g.add(snout);
+    [-0.1, 0.1].forEach(function (ex) {
+      var ear = box(0.08, 0.2, 0.08, 0x120e0b); ear.position.set(ex, 1.08, 0.55); g.add(ear);
+      var eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 5), new THREE.MeshBasicMaterial({ color: 0xff5a3c })); eye.position.set(ex, 0.9, 0.82); g.add(eye);
+    });
+    var tail = box(0.08, 0.08, 0.5, 0x120e0b); tail.position.set(0, 0.84, -0.7); tail.rotation.x = -0.6; g.add(tail);
+    [[-0.17, 0.36], [0.17, 0.36], [-0.17, -0.36], [0.17, -0.36]].forEach(function (p) {
+      var pv = new THREE.Group(); pv.position.set(p[0], 0.5, p[1]);
+      var l = box(0.1, 0.5, 0.1, 0x120e0b); l.position.y = -0.25; pv.add(l); g.add(pv); legs.push(pv);
+    });
+    var sh = new THREE.Mesh(new THREE.CircleGeometry(0.7, 14), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4 }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; g.add(sh);
+    g.traverse(function (o) { if (o.isMesh && o.geometry.type !== 'CircleGeometry') o.castShadow = true; });
+    g.userData.legs = legs;
+    return g;
+  }
+  var dogs = [0, 1].map(function (id) {
+    var m = makeDog(); m.visible = false; scene.add(m);
+    return { id: id, mesh: m, active: false, st: 'track', x: 0, z: 0, ang: 0, anim: 0, barkT: 0, lostT: 0 };
+  });
+  function setHint(t, s) { hintEl.textContent = t; hintEl.style.opacity = 1; hintT = s || 5; }
+  function bark(pan, vol) {
+    if (!ac) return;
+    var t = ac.currentTime;
+    for (var k = 0; k < 2; k++) {
+      var t0 = t + k * 0.2;
+      var o = ac.createOscillator(), g = ac.createGain(), bpf = ac.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(520, t0); o.frequency.exponentialRampToValueAtTime(190, t0 + 0.14);
+      bpf.type = 'bandpass'; bpf.frequency.value = 900; bpf.Q.value = 1.2;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+      o.connect(bpf); bpf.connect(g);
+      var s = ac.createBufferSource(), ng = ac.createGain();
+      s.buffer = noiseBuf; ng.gain.setValueAtTime(0.5, t0); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1);
+      s.connect(ng); ng.connect(bpf);
+      if (ac.createStereoPanner) { var p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(master); } else g.connect(master);
+      o.start(t0); o.stop(t0 + 0.2); s.start(t0); s.stop(t0 + 0.12);
+    }
+  }
+  function growl() {
+    if (!ac) return;
+    var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), lf = ac.createOscillator(), lg = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(60, t + 1.1);
+    lf.frequency.value = 28; lg.gain.value = 0.2; lf.connect(lg); lg.connect(g.gain);
+    g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.3); lf.start(t); lf.stop(t + 1.3);
+    bark(0, 0.4);
+  }
+  function dogCall(x, z) {
+    if (pendingDog || dogCool > 0 || dogs.some(function (d) { return d.active; })) return;
+    pendingDog = { t: 2.8, x: x, z: z };
+    bark(x > P.x ? 0.8 : -0.8, 0.07);
+  }
+  function spawnDog(x, z) {
+    var dg = null;
+    for (var i = 0; i < dogs.length; i++) if (!dogs[i].active) { dg = dogs[i]; break; }
+    if (!dg) return;
+    dg.active = true; dg.st = 'track'; dg.x = x; dg.z = z; dg.ang = Math.atan2(P.z - z, P.x - x); dg.barkT = 0; dg.mesh.visible = true;
+    dogCool = 25;
+    setHint('追蹤犬被放出來了。蘆葦擋不住氣味，跳進小溪待一下，才能洗掉氣味。', 7);
+  }
+
+  function reset() {
+    P = { x: 0, z: START_Z, ang: -Math.PI / 2, anim: 0, stam: 100, exh: false, concealed: false, running: false, dead: false, fall: 0 };
+    guards.forEach(function (g) {
+      g.x = g.ax; g.z = g.hz; g.dir = 1; g.st = 'patrol'; g.last = null; g.lose = 0; g.srch = 0; g.aim = 0; g.chaseT = 0; g.flashT = 0;
+    });
+    alarmV = 0; extraBpm = 0; clock = 0;
+    pendingDog = null; dogCool = 0; P.water = 0;
+    dogs.forEach(function (dg) { dg.active = false; dg.mesh.visible = false; });
+    camX = 0; camZ = START_Z + 11;
+    hintEl.style.opacity = 1; hintT = 8;
+    hintEl.textContent = '穿過蘆葦與鐵絲網缺口，抵達上方的河。被發現後守軍會瞄準你，在他們開槍前衝進蘆葦甩掉他們。';
+  }
+
+  function spotted(x, z) {
+    var fresh = false;
+    guards.forEach(function (g) {
+      if (g.st !== 'chase' && Math.hypot(g.x - x, g.z - z) < 40) { g.st = 'chase'; g.last = { x: P.x, z: P.z }; g.lose = 0; g.chaseT = 0; g.aim = 0; fresh = true; }
+    });
+    if (fresh) { whistle(); stinger(); say(5, true); dogCall(x, z); alarmV = 1; }
+  }
+
+  function update(dt) {
+    clock += dt;
+    var mx = 0, mz = 0, want = 0, wantRun = false;
+    if (keys['a'] || keys['arrowleft']) mx -= 1;
+    if (keys['d'] || keys['arrowright']) mx += 1;
+    if (keys['w'] || keys['arrowup']) mz -= 1;
+    if (keys['s'] || keys['arrowdown']) mz += 1;
+    var kl = Math.hypot(mx, mz);
+    if (kl > 0) { mx /= kl; mz /= kl; want = 1; wantRun = !!keys['shift']; }
+    if (ptr.id !== null) {
+      var dx = ptr.x - ptr.ox, dy = ptr.y - ptr.oy, d = Math.hypot(dx, dy);
+      if (d > 8) { mx = dx / d; mz = dy / d; want = 1; wantRun = d > 55; }
+    }
+    var reed = inReeds(P.x, P.z);
+    P.concealed = !!reed;
+    var running = !!(wantRun && want && P.stam > 0 && !P.exh);
+    P.running = running;
+    var sp = want ? (running ? 6.2 : 3.2) : 0;
+    if (reed) sp *= 0.75; else if (P.z > MUD0 && P.z < MUD1) sp *= 0.85;
+    if (inWater(P.z)) sp *= 0.7;
+    var nx = P.x + mx * sp * dt, nz = P.z + mz * sp * dt;
+    if (!blocked(nx, P.z, 0.4)) P.x = clamp(nx, -XW / 2 - 0.5, XW / 2 + 0.5);
+    if (!blocked(P.x, nz, 0.4)) P.z = Math.min(nz, START_Z + 4);
+    if (want) { P.ang = Math.atan2(mz, mx); P.anim += dt * (running ? 13 : 8); stepT -= dt; if (stepT <= 0) { footstep(running, !!reed, inWater(P.z)); stepT = running ? 0.26 : 0.45; } } else stepT = 0;
+    if (running) { P.stam -= 24 * dt; if (P.stam <= 0) { P.stam = 0; P.exh = true; } }
+    else { P.stam = Math.min(100, P.stam + (want ? 16 : 26) * dt); if (P.exh && P.stam >= 35) P.exh = false; }
+    var sightR = reed ? (running ? 6 : 2.5) : 9999;
+
+    towers.forEach(function (t) {
+      t.ang = t.base + t.amp * Math.sin(clock * t.w);
+      if (!reed && state === 'play') {
+        var d2 = Math.hypot(P.x - t.x, P.z - t.z);
+        if (d2 < t.range && Math.abs(adiff(Math.atan2(P.z - t.z, P.x - t.x), t.ang)) < t.half) spotted(t.x, t.z);
+      }
+    });
+
+    var nearest = 9999;
+    guards.forEach(function (g) {
+      if (state !== 'play') return;
+      g.anim += dt * (g.st === 'chase' ? 11 : 6);
+      var d = Math.hypot(P.x - g.x, P.z - g.z);
+      if (d < nearest) nearest = d;
+      var slow = (inReeds(g.x, g.z) ? 0.78 : 1) * (onFence(g.x, g.z) ? 0.5 : 1);
+      if (g.st === 'patrol') {
+        if (Math.abs(g.z - g.hz) > 0.2) { var vz = g.hz > g.z ? 1 : -1; g.z += vz * 3 * dt * slow; g.ang = vz > 0 ? Math.PI / 2 : -Math.PI / 2; }
+        else {
+          g.x += g.dir * g.sp * dt * slow;
+          if (g.ax < g.bx) { if (g.x > g.bx) g.dir = -1; if (g.x < g.ax) g.dir = 1; }
+          else { if (g.x < g.bx) g.dir = 1; if (g.x > g.ax) g.dir = -1; }
+          g.ang = g.dir > 0 ? 0 : Math.PI;
+        }
+        var range = Math.min(9.5, sightR);
+        if (d < range && Math.abs(adiff(Math.atan2(P.z - g.z, P.x - g.x), g.ang)) < 0.5) spotted(g.x, g.z);
+        else if (running && !reed && d < 5) spotted(g.x, g.z);
+      } else if (g.st === 'chase') {
+        var sees = d < 17 && !(reed && d > 3);
+        g.chaseT += dt;
+        if (sees) { g.last = { x: P.x, z: P.z }; g.lose = 0; } else g.lose += dt;
+        var aiming = sees && g.chaseT > 1.0 && d < 13;
+        if (aiming) { g.aim += dt; g.ang = Math.atan2(P.z - g.z, P.x - g.x); } else g.aim = Math.max(0, g.aim - dt * 2);
+        var tx = g.last.x - g.x, tz = g.last.z - g.z, td = Math.hypot(tx, tz);
+        if (td > 0.6) { var mv = (aiming ? 0.25 : 1) * 5.0 * dt * slow; g.x += tx / td * mv; g.z += tz / td * mv; if (!aiming) g.ang = Math.atan2(tz, tx); }
+        else { g.st = 'search'; g.srch = 3; }
+        if (g.lose > 6) { g.st = 'search'; g.srch = 2; }
+        if (g.aim >= 1.2 && state === 'play') finish(false, g);
+        else if (d < 1.0 && state === 'play') finish(false, g);
+      } else {
+        g.srch -= dt; g.ang += 1.8 * dt; g.aim = 0; g.chaseT = 0;
+        if (d < 5.6 && !reed) { g.st = 'chase'; g.last = { x: P.x, z: P.z }; g.lose = 0; }
+        if (g.srch <= 0) g.st = 'patrol';
+      }
+    });
+    // water + dogs
+    var wet = inWater(P.z);
+    if (wet) P.water += dt; else P.water = Math.max(0, P.water - dt * 0.5);
+    dogCool = Math.max(0, dogCool - dt);
+    if (pendingDog) {
+      pendingDog.t -= dt;
+      if (pendingDog.t <= 0) { spawnDog(pendingDog.x, pendingDog.z); pendingDog = null; }
+    }
+    dogs.forEach(function (dg) {
+      if (!dg.active || state !== 'play') return;
+      dg.anim += dt * 16;
+      var ddx = P.x - dg.x, ddz = P.z - dg.z, dd = Math.hypot(ddx, ddz);
+      if (dg.st === 'track') {
+        if (P.water > 0.8) { dg.st = 'lost'; dg.lostT = 5; setHint('狗失去了你的氣味。', 4); }
+        var wv = Math.sin(clock * 5 + dg.id * 2) * 0.35;
+        var slowd = (onFence(dg.x, dg.z) ? 0.6 : 1) * (inWater(dg.z) ? 0.7 : 1);
+        dg.ang = Math.atan2(ddz, ddx) + wv;
+        dg.x += Math.cos(dg.ang) * 6.0 * dt * slowd; dg.z += Math.sin(dg.ang) * 6.0 * dt * slowd;
+        dg.barkT -= dt;
+        if (dg.barkT <= 0) { bark(clamp((dg.x - P.x) / 9, -1, 1), clamp(0.5 / (1 + dd / 7), 0.04, 0.4)); dg.barkT = 0.7 + Math.random() * 0.5; }
+        if (dd < 1.1 && state === 'play') finish(false, null, 'dog');
+      } else {
+        dg.lostT -= dt; dg.ang += 2.5 * dt;
+        dg.x += Math.cos(dg.ang) * 1.2 * dt; dg.z += Math.sin(dg.ang) * 1.2 * dt;
+        if (dd < 3.5 && P.water < 0.3) dg.st = 'track';
+        if (dg.lostT <= 0) { dg.active = false; dg.mesh.visible = false; }
+      }
+    });
+    var chasing = guards.some(function (g) { return g.st === 'chase'; }) || dogs.some(function (d) { return d.active && d.st === 'track'; });
+    musChase = chasing;
+    alarmV = chasing ? 1 : Math.max(0, alarmV - dt);
+    extraBpm = clamp((19 - nearest) / 19, 0, 1) * 55 + (chasing ? 28 : 0) + (running ? 8 : 0);
+    if (state === 'play') {
+      $('state').textContent = chasing ? '被追捕！' : reed ? '藏身中' : '潛行中';
+      $('state').style.color = chasing ? '#e0383e' : '';
+      $('hid').style.opacity = (reed && !chasing) ? 1 : 0;
+    }
+    hintT -= dt; if (hintT <= 0) hintEl.style.opacity = 0;
+    if (P.z < RIVER_Z + 1.5 && state === 'play') finish(true);
+  }
+
+  function syncScene(dt) {
+    if (P.dead) P.fall = Math.min(1, P.fall + dt * 2.5);
+    player.position.set(P.x, -P.fall * 0.25, P.z); faceTo(player, P.ang); player.rotation.x = P.fall * 1.45;
+    animPerson(player, P.anim, P.running ? 0.9 : 0.55);
+    player.scale.y = P.concealed ? 0.86 : 1;
+    guards.forEach(function (g) {
+      g.mesh.position.set(g.x, 0, g.z); faceTo(g.mesh, g.ang);
+      animPerson(g.mesh, g.anim, g.st === 'chase' ? 1.0 : 0.5);
+      var rg = g.mesh.userData.rig;
+      if (g.aim > 0.05 || g.flashT > 0) { rg.armR.rotation.x = -1.45; rg.armL.rotation.x = -1.2; }
+      if (g.aim > 0.05 && state === 'play') {
+        var ln = Math.hypot(P.x - g.x, P.z - g.z);
+        g.laser.visible = true; g.laser.position.set((g.x + P.x) / 2, 1.4, (g.z + P.z) / 2); g.laser.scale.set(1, 1, ln); g.laser.lookAt(P.x, 1.4, P.z);
+        g.laser.material.opacity = 0.35 + 0.65 * Math.min(1, g.aim / 1.2);
+      } else g.laser.visible = false;
+      if (g.flashT > 0) { g.flashT -= dt; g.flash.visible = true; g.flash.position.set(g.x + Math.cos(g.ang) * 1.0, 1.4, g.z + Math.sin(g.ang) * 1.0); } else g.flash.visible = false;
+      var ch = g.st === 'chase';
+      g.sp1.visible = !ch; g.sp2.visible = ch;
+      var sc = ch ? g.sp2 : g.sp1; sc.position.set(g.x, 0, g.z); sc.rotation.y = -g.ang;
+      g.b1.visible = !ch; g.b2.visible = ch;
+      var bm = ch ? g.b2 : g.b1; bm.position.set(g.x, 0, g.z); bm.rotation.y = -g.ang;
+      g.icon.visible = ch || g.st === 'search';
+      g.icon.material.map = ch ? texBang : texQ; g.icon.position.set(g.x, 3.0, g.z);
+    });
+    towers.forEach(function (t) { t.sec.rotation.y = -t.ang; t.beam.rotation.y = -t.ang; });
+    dogs.forEach(function (dg) {
+      dg.mesh.visible = dg.active;
+      if (!dg.active) return;
+      dg.mesh.position.set(dg.x, 0, dg.z); faceTo(dg.mesh, dg.ang);
+      var lgs = dg.mesh.userData.legs;
+      for (var q = 0; q < 4; q++) lgs[q].rotation.x = Math.sin(dg.anim + (q < 2 ? 0 : 2.6) + (q % 2) * 0.4) * (dg.st === 'track' ? 0.9 : 0.25);
+    });
+    // river waves
+    var pa = riverGeo.attributes.position, arr = pa.array;
+    for (var i = 0; i < arr.length; i += 3) arr[i + 2] = riverBase[i + 2] + Math.sin(riverBase[i] * 0.3 + clock * 1.3 + riverBase[i + 1] * 0.4) * 0.12;
+    pa.needsUpdate = true;
+    // camera
+    var asp = camera.aspect, h = asp < 0.8 ? 15 : 11.5, back = asp < 0.8 ? 11 : 9.5;
+    camX += (P.x * 0.7 - camX) * Math.min(1, dt * 4);
+    camZ += (P.z + back - camZ) * Math.min(1, dt * 5);
+    var sh = (alarmV > 0.5 && !reduce) ? (Math.random() - 0.5) * 0.08 : 0;
+    camera.position.set(camX + sh, h, camZ);
+    camera.lookAt(camX * 0.9, 0, P.z - 2.5);
+    $('alarm').style.opacity = alarmV > 0 ? String(0.35 + 0.35 * Math.abs(Math.sin(clock * 8)) * alarmV) : '0';
+    $('stamFill').style.width = P.stam + '%'; $('stamFill').className = 'fi' + (P.exh ? ' ex' : '');
+    var prog = clamp((START_Z - P.z) / (START_Z - RIVER_Z), 0, 1);
+    $('progDot').style.bottom = 'calc(' + (prog * 100) + '% - 3px)';
+    if (drone && ac) { drone.lp.frequency.value = 120 + extraBpm * 2; }
+  }
+
+  function finish(win, shooter, cause) {
+    state = 'over'; if (!win) window.__fails = (window.__fails || 0) + 1;
+    stopMusic(); stopAnn();
+    if (win) knock(0.3);
+    else {
+      P.dead = true; lastCause = cause || 'shot';
+      if (shooter) shooter.flashT = 0.2;
+      if (lastCause === 'dog') growl(); else gunshot();
+      flashScreen();
+    }
+    $('hid').style.opacity = 0; hintEl.style.opacity = 0;
+    setTimeout(function () {
+      $('fade').classList.add('on');
+      setTimeout(function () {
+        stopBeat(); extraBpm = 0;
+        if (win) { try { parent.postMessage({ type: 'ch2', win: true, fails: (window.__fails || 0) }, '*'); } catch (e) {} return; }
+        $('tSub').textContent = win ? '第二章　完' : '第二章　中斷';
+        $('tH').textContent = win ? '過河' : (lastCause === 'dog' ? '犬吠' : '槍響');
+        $('tP').textContent = win ? '冰冷的水沒過胸口，你什麼都聽不見，只有自己的呼吸。你游到對岸，趴在泥地上很久沒有動。但這只是第一道河。' : (lastCause === 'dog' ? '黑暗裡只剩下狗吠聲，越來越近，越來越近。然後，一切歸於寂靜。' : '一聲槍響劃破夜空，蘆葦叢裡什麼都不動了。然後，一切歸於寂靜。');
+        $('tC').textContent = '';
+        $('goBtn').textContent = win ? '再玩一次' : '再試一次';
+        $('title').hidden = false;
+        setTimeout(function () { $('fade').classList.remove('on'); }, 150);
+      }, 950);
+    }, win ? 500 : 1300);
+  }
+
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (P) {
+      if (state === 'play') update(dt); else { clock += dt; }
+      syncScene(dt);
+    } else {
+      camera.position.set(0, 12, START_Z + 11); camera.lookAt(0, 0, START_Z - 3);
+    }
+    atmos(dt);
+    if (useComposer && composer) {
+      finalPass.uniforms.uTime.value = performance.now() / 1000; finalPass.uniforms.uPulse.value = pulseV;
+      composer.render();
+    } else renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+
+  $('goBtn').addEventListener('click', function () {
+    audioInit();
+    reset();
+    state = 'play';
+    $('title').hidden = true;
+    $('state').textContent = '潛行中'; $('state').style.color = '';
+    startBeat();
+  });
+  reset();
+  requestAnimationFrame(frame);
+})();
+<\/script>
+</script>
