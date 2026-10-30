@@ -1926,6 +1926,11 @@ function buildRuin(){
   me=makePerson({shirt:0x55604b,pants:0x20242a,hair:0x0c0c0c,pony:true});
   FM.cai=person(TEAMDEF[0][2],-3.3,-.6,Math.PI*.2);FM.mei=person(TEAMDEF[1][2],2.6,-.9,Math.PI*1.2);FM.kid=person(TEAMDEF[2][2],2.1,-.5,Math.PI*1.2);
   FM.piao=person(TEAMDEF[4][2],-.4,-2.4,Math.PI*.1);FM.min=person(TEAMDEF[3][2],3.9,1.6,Math.PI*1.1);
+  /* clear exit marker: glowing doorway in the east gap */
+  mk(.12,2.5,1.5,0xffd27a,5.0,1.25,.75,{em:0xffc060,ei:1.4,cs:false});
+  const gl=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.4),new THREE.MeshBasicMaterial({color:0xffc060,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));gl.rotation.x=-Math.PI/2;gl.position.set(4.2,.03,.75);world.add(gl);
+  const ar=new THREE.Mesh(new THREE.ConeGeometry(.28,.6,3),new THREE.MeshBasicMaterial({color:0xffe0a0,fog:false}));ar.rotation.z=-Math.PI/2;ar.position.set(3.2,1.0,.75);world.add(ar);
+  const el=new THREE.PointLight(0xffc060,2.4,7);el.position.set(4.6,1.3,.75);scene.add(el);extras.push(el);
   scene.add(moon);
 }
 async function ruin(){
@@ -1944,7 +1949,7 @@ async function ruin(){
       if(c==0)await talk([['老蔡','（他停了很久。）……有一些人，是我放過去的。有一些人，我沒有。'],['老蔡','數字我記得很清楚。']]);
       else if(c==1)await talk([['老蔡','沒有人管。所以你要管別人。']]);
       else await talk([['老蔡','（他點了一下頭，像是滿意。）']]);
-      need.cai=1}});
+      need.cai=1;hint('規矩聽完了。往右邊那道發亮的門口走，按「出發」。',10000)}});
     addIt({x:2.2,z:-.2,my:1.9,label:'美蘭',run:async it=>{
       if(S.f.bag){await talk([['美蘭','（她輕輕拍著孩子的背。）謝謝你。']]);return}
       await talk([['美蘭','（她抱著孩子。小宇睡著，臉貼在她肩膀上。）'],['美蘭','他昨天開始咳。我給他吃了藥……不知道夠不夠。']]);
