@@ -1697,7 +1697,7 @@ function dogTick(dt){
       if(d<4.2){o.st='wind';o.t=.55;g.scale.y=.85;pSnd(g.position.x,g.position.z,.5,.6,'lowpass',200,1)}}
     else if(o.st==='wind'){o.t-=dt;face(dx,dz);g.position.y=0;if(o.t<=0){const l=Math.hypot(dx,dz)||1;o.dx=dx/l;o.dz=dz/l;o.st='lunge';o.t=.5;g.scale.y=1.15;dogBark(g.position.x,g.position.z)}}
     else if(o.st==='lunge'){g.position.x+=o.dx*(o.fatal?14:11)*dt;g.position.z+=o.dz*(o.fatal?14:11)*dt;face(o.dx,o.dz);g.position.y=Math.sin((1-o.t/.5)*Math.PI)*.45;o.t-=dt;
-      if(d<.95&&!W.over&&!window.__nodet){failIt(o.fatal?'你回頭了。有東西從黑暗裡撲了出來。她說過：不管發生什麼事，都不要回頭。':'狗從草裡撲出來，把你壓在地上。');return}
+      if(d<.95&&!W.over&&!window.__nodet){failIt(o.fatal?'你回頭了。有東西從黑暗裡撲了出來。你想起母親說過：不管發生什麼事，都不要回頭。':'狗從草裡撲出來，把你壓在地上。');return}
       if(o.t<=0){o.st='rec';o.t=.9;o.n++;g.position.y=0}}
     else if(o.st==='rec'){o.t-=dt;if(o.t<=0){o.st=o.n>=3?'flee':(d<4.2?'wind':'charge');if(o.st==='wind'){o.t=.55;g.scale.y=.85}o.t=o.st==='flee'?3:o.t}}
     else{const sp=8;g.position.x-=dx/d*sp*dt;g.position.z-=dz/d*sp*dt;face(-dx,-dz);o.t-=dt;if(o.t<=0){world.remove(g);DG.list.splice(i,1)}}
@@ -1867,7 +1867,6 @@ async function sceneFinalIntro(){
   await talk([['','前面是最後一段。一道鐵絲網，一座塔，一道會轉動的光。'],['',names.length?'還在你身邊的是：'+names.join('、')+'。':'你身邊沒有人了。']]);
   if(S.team.cai)await talk([['老蔡','（他蹲下來，用手指在泥上畫了三顆石頭。）'],['老蔡','聽到「喀」的一聲，燈會暗兩秒。從一顆石頭衝到下一顆。'],['老蔡','不要在石頭旁邊停太久。後面的東西，不喜歡你停下來。']]);
   else await talk([['','你想起老蔡說過的話。「喀」的一聲，燈會暗兩秒。']]);
-  await talk([[S.team.cai?'老蔡':'','不管後面是誰在叫你，都不要回頭。'.replace(/^/,S.team.cai?'':'你想起母親的話：')]]);
   W.tw=mkTowerLight();W.tt=0;W.tsp=0;W.sm=4;W.coverT=0;
   hint('躲在石頭後面。聽到「喀」，就衝到下一顆。不要停太久。',8000);
 }
