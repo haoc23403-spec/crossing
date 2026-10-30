@@ -785,11 +785,11 @@ function raidTick(dt){
   const want=(holdKey||holdBtn);
   raid.lock=Math.max(0,raid.lock-dt);
   const holding=want&&raid.breath>0&&raid.lock<=0;
-  if(holding){raid.breath-=13*dt;if(raid.breath<=0){raid.breath=0;raid.lock=1.6;gaspSnd();raid.noise+=.45}}
-  else raid.breath=Math.min(100,raid.breath+(raid.lock>0?8:28)*dt);
+  if(holding){raid.breath-=9*dt;if(raid.breath<=0){raid.breath=0;raid.lock=1.0;gaspSnd();raid.noise+=.25}}
+  else raid.breath=Math.min(100,raid.breath+(raid.lock>0?12:34)*dt);
   const th=threatNow();
-  if(th>0){if(!holding)raid.noise+=dt*(.28*th+(S.f.paper&&!S.f.burned&&!raid.paperAt?.12:0));else raid.noise-=dt*.05}
-  else raid.noise-=dt*.25;
+  if(th>0){if(!holding)raid.noise+=dt*(.17*th+(S.f.paper&&!S.f.burned&&!raid.paperAt?.08:0));else raid.noise-=dt*.12}
+  else raid.noise-=dt*.35;
   raid.noise=clamp(raid.noise,0,1.2);
   beat.vol=.2+th*.22;beat.bpm=76+th*20+raid.noise*30;
   $('bar1').querySelector('i').style.width=raid.breath+'%';
@@ -807,7 +807,7 @@ async function raidRun(){
   const order=['jar'].concat(shuf(['floor','portrait']).slice(0,1),(Math.random()<.65?['wardrobe']:['bed']));
   const rest=['floor','portrait','bed','wardrobe'].filter(k=>!order.includes(k));
   const all=order.concat(rest);
-  const n=S.sus<2?1:S.sus<4?2:S.sus<6?3:S.sus<8?4:5;
+  const n=S.sus<3?1:S.sus<5?2:S.sus<7?3:S.sus<9?4:5;
   const checks=all.slice(0,n);
   // breach
   kick();flashFx();stinger();door.tgt=-1.7;candle.userData.on=false;setMood('raid');beat.vol=.3;
