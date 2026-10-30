@@ -605,7 +605,7 @@ async function night1(){
       await talk([['母親','他們進來，總是先翻米缸。其他地方……看他們心情。'],['母親','別讓人看見你的眼睛，恩惠。']]);
       S.f.hint=1;need.mother=1;it.hide=true}});
     addIt({x:2.9,z:1.5,my:.8,label:'睡覺',keep:1,run:async it=>{
-      if(!(need.portrait&&need.mother)){await talk([['','還不能睡。肖像還沒擦，或者母親還需要你。']]);return}
+      if(!(need.portrait&&need.mother)){await talk([['','還不能睡。肖像還沒擦，或者母親還需要你。']]);busy=false;return}
       await talk([['','你躺在母親腳邊。她的呼吸很輕，像怕吵醒誰。'],['','天快亮了。']]);res()}});
   });
   await fin;busy=true;
