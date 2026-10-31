@@ -552,6 +552,21 @@ const SMALL0='';
 function mkCH1(){
 /* ================= scene: home ================= */
 const HIDE={bed:{x:3.7,z:-1.4},wardrobe:{x:4.55,z:2.5}};
+let PD=null;
+async function wipePortrait(careful){
+  const u=me.userData;u.lock=true;
+  await walkTo(me,-2.89,-3.0,2.4);face(me,-2.89,-3.6);await sleep(250);const cx0=me.position.x;
+  const cloth=new THREE.Mesh(new THREE.BoxGeometry(.16,.03,.12),new THREE.MeshStandardMaterial({color:0xb9b2a0,roughness:1}));cloth.position.set(0,-.64,.03);cloth.rotation.x=-.35;cloth.scale.set(1.5,1,1.5);u.aR.add(cloth);
+  const parts=[];for(let i=0;i<14;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.025,6,5),new THREE.MeshBasicMaterial({color:0xcfc6ae,transparent:true,opacity:.7,fog:false}));m.position.set(-3.2+rnd(-.35,.35),1.9+rnd(-.4,.5),-3.35);m.userData={vx:rnd(-.2,.2),vy:rnd(-.25,-.05),vz:rnd(.05,.3),t:rnd(0,1.5)};world.add(m);parts.push(m)}
+  const dur=careful?4200:1100,t0=performance.now(),p0=PD?PD.material.opacity:.4,p1=careful?.04:.24,ry=me.rotation.y;let lastN=0;
+  while(true){const t=(performance.now()-t0)/dur;if(t>=1)break;const raise=Math.min(1,t*5);const sw=Math.sin(t*(careful?16:22)*(careful?1:1));
+    u.aR.rotation.x=-2.45*raise+.13*Math.cos(t*(careful?32:44))*raise;u.aR.rotation.z=.42*sw*raise;u.aL.rotation.x=.12*raise;
+    if(PD)PD.material.opacity=p0+(p1-p0)*t;
+    parts.forEach(m=>{const d=m.userData;d.t+=.016;m.position.x+=d.vx*.016;m.position.y+=d.vy*.016;m.position.z+=d.vz*.016;m.material.opacity=Math.max(0,.7*(1-t))});
+    if(performance.now()-lastN>(careful?420:300)){lastN=performance.now();nz(.16,.14,'bandpass',1700+rnd(-300,300),.8)}
+    await sleep(16)}
+  parts.forEach(m=>world.remove(m));u.aR.remove(cloth);u.aR.rotation.x=0;u.aR.rotation.z=0;u.aL.rotation.x=0;me.rotation.y=ry;me.position.x=cx0;u.lock=false;S.f.wiped=1;await sleep(250);
+}
 function buildHome(){
   clearWorld();scene_.name='home';
   const fl_=new THREE.Mesh(new THREE.PlaneGeometry(10.4,7.4),new THREE.MeshStandardMaterial({map:T_WOOD,roughness:.85}));fl_.rotation.x=-Math.PI/2;fl_.receiveShadow=true;world.add(fl_);
@@ -610,6 +625,7 @@ function buildHome(){
     for(let i=0;i<6;i++){x.strokeStyle='rgba(20,15,8,.18)';x.lineWidth=1;x.beginPath();let cx=Math.random()*w,cy=Math.random()*h;x.moveTo(cx,cy);for(let k=0;k<6;k++){cx+=rnd(-8,8);cy+=rnd(-8,8);x.lineTo(cx,cy)}x.stroke()}
   });
   const pm=mk(.8,1.0,.02,0xffffff,-3.2,1.9,-3.43,{map:pt,r:.5,cs:false});
+  PD=new THREE.Mesh(new THREE.PlaneGeometry(.8,1.0),new THREE.MeshBasicMaterial({color:0x8a8472,transparent:true,opacity:S.f&&S.f.wiped?.05:.4,depthWrite:false,fog:false}));PD.position.set(-3.2,1.9,-3.415);world.add(PD);
   // shelf + radio
   mk(1.4,.07,.34,0x3a2a1c,-.4,1.15,-3.3);mk(.55,.3,.22,0x2b2a26,-.4,1.34,-3.3);mk(.14,.14,.02,0x7a6a3a,-.25,1.34,-3.18,{cs:false});mk(.3,.2,.02,0x0e0e0e,-.52,1.34,-3.18,{cs:false});
   // jar
@@ -694,8 +710,8 @@ async function night1(){
     addIt({x:-3.2,z:-2.7,my:2.8,label:'肖像',run:async it=>{
       await talk([['','牆上的肖像蒙了一層灰。每週都有人來檢查，它乾不乾淨。']]);
       const c=await ask('你怎麼擦？',['仔細擦，一遍又一遍','隨便抹兩下'],{time:9,def:1});
-      if(c==0)await talk([['','你擦得很慢，手很穩。玻璃裡映出你自己的臉，你先移開了視線。']]);
-      else{S.sus++;hud();await talk([['','灰還留在邊角。你希望沒有人會注意到。']])}
+      if(c==0){await wipePortrait(true);await talk([['','你擦得很慢，手很穩。玻璃裡映出你自己的臉，你先移開了視線。']])}
+      else{await wipePortrait(false);S.sus++;hud();await talk([['','灰還留在邊角。你希望沒有人會注意到。']])}
       need.portrait=1;it.hide=true}});
     addIt({x:-.4,z:-2.7,my:2.0,label:'收音機',run:async it=>{
       initAudio();bcast(0);await sleep(700);
